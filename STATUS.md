@@ -5,14 +5,14 @@
 
 | รายการ | ค่า |
 |---|---|
-| อัปเดตล่าสุด | 2026-09-29 (เพิ่ม healthcheck + ควบคุมโควต้า LINE) |
+| อัปเดตล่าสุด | 2026-09-29 (ปิด PRD blocker ขั้น 2 + ปรับสิทธิ์/CRITICAL/LINE target/retention policy) |
 | เวอร์ชันโค้ด | 0.1.0 |
 | เวอร์ชัน PRD | 0.2 (Draft for Review) |
-| เฟสปัจจุบัน | **Phase 1 (MVP) — แกนระบบเสร็จ, ยังไม่ครบตามขอบเขต** |
-| ความพร้อมภาพรวม Phase 1 | ประมาณ 55% (แกนโค้ดเสร็จ; ขาด TTS, Admin PWA, jobs ปฏิบัติการ, การตั้งค่าจริง) |
+| เฟสปัจจุบัน | **Phase 1 (MVP) — แกนระบบเสร็จ, ปิด blocker ขั้น 2 แล้ว; ยังขาด staging/PWA/TTS/retention cleanup** |
+| ความพร้อมภาพรวม Phase 1 | ประมาณ 60% (แกนโค้ดเสร็จ; ขาด TTS, Admin PWA, jobs ปฏิบัติการ/retention, การตั้งค่าจริง) |
 | สุขภาพโค้ด | `npm run typecheck` ✅ · `npm test` ✅ 55/55 (ตรวจเมื่อ 2026-09-29) |
 | สภาพแวดล้อมจริง | ❓ ยังไม่ยืนยันว่ามี Supabase / LINE OA / GitHub Secrets ตั้งไว้แล้ว |
-| Blocker หลัก | ต้องให้เจ้าของโปรเจกต์ตอบคำถาม PRD ข้อ 17 (#1, #2, #4, #8, #10) |
+| Blocker หลัก | **ไม่มีแล้วใน PRD ข้อ 17 #1/#2/#4/#8/#10**; ขั้นต่อไปคือ staging + vertical slice จริง |
 
 ---
 
@@ -52,7 +52,7 @@
 | Job | สถานะ | หมายเหตุ |
 |---|---|---|
 | `weather_fetch` | ✅ | workflow `jobs.yml` ทุก 3 ชม. |
-| `announcement_scheduler` | ✅ | รวมอยู่ใน job `tick` (ทุก 15 นาที — PRD กำหนด 5 นาที) |
+| `announcement_scheduler` | ✅ | รวมอยู่ใน job `tick` (ทุก 5 นาทีเป็น fallback; CRITICAL มี immediate path) |
 | `briefing_morning` | ✅ | 06:30 เวลาไทย (cron 23:30 UTC) |
 | `delivery_dispatch` | ✅ | รวมอยู่ใน `tick` |
 | `tts_generate` | ❌ | |
@@ -68,34 +68,33 @@
 - เอกสารถัดไปตาม PRD (`03-data-model` … `08-delivery`) ยังไม่ถูกเขียน ทั้งที่ schema จริงมีแล้ว → ต้องเขียนย้อนให้ตรงกับของจริง
 - ไม่มี dependency/secret scanning ใน repo (SEC-008)
 
-## 5. คำถามที่ยังรอเจ้าของตัดสิน (PRD ข้อ 17)
+## 5. ผลการตัดสินใจ PRD ข้อ 17
 
-| # | คำถาม | บล็อกอะไร |
-|---|---|---|
-| 1 | ผู้รับ LINE: broadcast / กลุ่ม / push รายบุคคล | โควต้า, `LINE_TARGET`, การเก็บ user ID |
-| 2 | ใครอนุมัติ publish กี่ชั้น | สิทธิ์ใน RLS/PWA |
-| 4 | อากาศแบบใดนับเป็น "สิ่งใหม่" | กฎใน `weather.ts` |
-| 8 | วิธีส่งงาน CRITICAL ให้ทัน (≤ 5 นาที) | สถาปัตยกรรม dispatch |
-| 10 | นโยบายเก็บข้อมูล (retention) | job `retention_cleanup` |
-| 3, 5, 6, 7, 9 | ขนาดชุมชน, เตือน active นาน, ราคา, ข่าว, ภาษาถิ่น | ไม่บล็อก Phase 1 แต่บล็อก Phase 2 / TTS |
+**ปิด blocker ขั้น 2 แล้ว (2026-09-29)**
 
+- #1 LINE = กลุ่มหมู่บ้านใน MVP
+- #2 ผู้ช่วยทำ Draft → ผู้ใหญ่บ้าน Publish; admin ดูแล/override; SENSITIVE จำกัดตามบทบาท
+- #4 อากาศมีนัยสำคัญตามเกณฑ์ใน `src/engine/weather.ts`
+- #8 CRITICAL ส่งทันทีใน execution path; GitHub Actions 5 นาทีเป็น fallback
+- #10 retention policy ถูกล็อกใน `src/engine/retention.ts`
+- #3, #6, #7, #9 ไม่ใช่ blocker ของแกน Phase 1 (รายละเอียดที่เหลือดู PRD ข้อ 17)
 ## 6. ความเสี่ยงที่กำลังเปิดอยู่
 
 | ความเสี่ยง | สถานะ |
 |---|---|
-| R4 cron ของ GitHub ล่าช้า/พลาด | เปิดอยู่ — ยังไม่มี healthcheck |
+| R4 cron ของ GitHub ล่าช้า/พลาด | เปิดอยู่ — healthcheck มีแล้ว; CRITICAL ไม่พึ่ง cron |
 | R5 / SEC-007 secrets หลุดในแชต | ⚠️ **เคยมีการวางโทเคน GitHub ในแชต — ต้อง revoke แล้วสร้างใหม่ (ทำก่อนปิดงานแรก)** |
 | R9 ขอบเขตบวม | ควบคุมด้วย PRD ข้อ 5 |
 
 ## 7. งานถัดไปที่แนะนำ (เรียงลำดับ)
 
 1. ตั้ง Secret `ADMIN_LINE_TARGET` แล้วทดสอบ healthcheck บน staging
-2. ตอบ PRD ข้อ 17 (#1, #2, #4, #8, #10) และ rotate โทเคนที่หลุด → เจ้าของโปรเจกต์
-3. ตั้ง Supabase (staging) + LINE OA/กลุ่มทดสอบ + GitHub Secrets → รัน workflow `jobs` แบบ dry-run
-4. Vertical slice จริงแบบ end-to-end: `announce → publish → dispatch → LINE` บน staging
-5. TTS น้องจุ่นจ้าน + ส่ง LINE Audio (หลังตอบ PRD #9 เรื่องภาษาถิ่น)
-6. ขั้น 5 ที่เหลือ: ตัดสินใจความถี่ scheduler, กลไก CRITICAL (#8), retention_cleanup (รอ #10)
-7. Admin PWA ขั้นต่ำ (login, จัดการประกาศ, ดูการส่ง, ดู job runs)
+2. ตั้ง Supabase (staging) + LINE OA/กลุ่มทดสอบ + GitHub Secrets → รัน workflow `jobs` แบบ dry-run
+3. Vertical slice จริงแบบ end-to-end: `announce → publish → dispatch → LINE` บน staging
+4. ทำ `retention_cleanup` ให้บังคับใช้นโยบายที่ตัดสินแล้ว
+5. TTS น้องจุ่นจ้าน + ส่ง LINE Audio (ภาษาไทยมาตรฐานเป็น baseline)
+6. Admin PWA ขั้นต่ำ (login, จัดการประกาศ, ดูการส่ง, ดู job runs)
+7. เขียน docs/03–08 ให้ตรงกับ schema/โค้ดจริง
 
 ## 8. วิธีอัปเดตไฟล์นี้
 
