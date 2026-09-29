@@ -13,7 +13,7 @@ export interface Ctx {
   now: Date;
 }
 
-const PUBLISHERS = new Set(['admin', 'village_head', 'assistant']);
+const PUBLISHERS = new Set(['admin', 'village_head']);
 const uuid = () => crypto.randomUUID();
 
 export class PermissionError extends Error {}
