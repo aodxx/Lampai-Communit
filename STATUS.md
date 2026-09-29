@@ -10,7 +10,7 @@
 | เวอร์ชัน PRD | 0.2 (Draft for Review) |
 | เฟสปัจจุบัน | **Phase 1 (MVP) — แกนระบบเสร็จ, ปิด blocker ขั้น 2 แล้ว; ยังขาด staging/PWA/TTS/retention cleanup** |
 | ความพร้อมภาพรวม Phase 1 | ประมาณ 60% (แกนโค้ดเสร็จ; ขาด TTS, Admin PWA, jobs ปฏิบัติการ/retention, การตั้งค่าจริง) |
-| สุขภาพโค้ด | `npm run typecheck` ✅ · `npm test` ✅ 55/55 (ตรวจเมื่อ 2026-09-29) |
+| สุขภาพโค้ด | `npm run typecheck` ✅ · `npm test` ✅ 57/57 (ตรวจเมื่อ 2026-09-29) |
 | สภาพแวดล้อมจริง | ❓ ยังไม่ยืนยันว่ามี Supabase / LINE OA / GitHub Secrets ตั้งไว้แล้ว |
 | Blocker หลัก | **ไม่มีแล้วใน PRD ข้อ 17 #1/#2/#4/#8/#10**; ขั้นต่อไปคือ staging + vertical slice จริง |
 
