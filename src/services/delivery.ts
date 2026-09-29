@@ -1,6 +1,8 @@
 import { deliversImmediately, canSendNow } from '../engine/priority.ts';
 import { formatAnnouncementMessage } from '../engine/message.ts';
+import { canSendUnderQuota, quotaLevel, type QuotaLevel } from '../engine/quota.ts';
 import type { Announcement, AnnouncementUpdate } from '../engine/types.ts';
+import type { QuotaProvider } from '../adapters/lineQuota.ts';
 import type { Delivery, Repo } from '../repo/types.ts';
 import type { Ctx } from './announcements.ts';
 
@@ -28,13 +30,26 @@ export interface DispatchStats {
   sent: number;
   failed: number;
   heldQuietHours: number;
+  heldLowQuota: number;
   refused: number;
+  quotaLevel: QuotaLevel | 'unknown' | 'unchecked';
 }
 
 /** ส่งคิวที่ค้างอยู่: เคารพ quiet hours, ปฏิเสธข้อมูลที่ไม่ใช่ public, retry จำกัดจำนวน, บันทึกทุกความพยายาม */
-export async function dispatch(repo: Repo, sender: Sender, communityId: string, now: Date): Promise<DispatchStats> {
-  const stats: DispatchStats = { sent: 0, failed: 0, heldQuietHours: 0, refused: 0 };
-  for (const d of await repo.listDispatchable(communityId)) {
+export async function dispatch(repo: Repo, sender: Sender, communityId: string, now: Date, opts: { quota?: QuotaProvider } = {}): Promise<DispatchStats> {
+  const stats: DispatchStats = { sent: 0, failed: 0, heldQuietHours: 0, heldLowQuota: 0, refused: 0, quotaLevel: 'unchecked' };
+  const queue = await repo.listDispatchable(communityId);
+  // ตรวจโควต้าครั้งเดียวต่อรอบ (เฉพาะเมื่อมีของต้องส่ง); ตรวจไม่ได้ = fail-open ไม่ให้ข้อความสำคัญค้างเพราะ API โควต้าล่ม
+  let level: QuotaLevel = 'ok';
+  if (opts.quota && queue.length > 0) {
+    try {
+      level = quotaLevel(await opts.quota.get());
+      stats.quotaLevel = level;
+    } catch {
+      stats.quotaLevel = 'unknown';
+    }
+  }
+  for (const d of queue) {
     if (d.dataLevel !== 'public') {
       await repo.recordAttempt(d.id, { ok: false, httpStatus: null, error: 'refused: non-public data' }, { status: 'skipped', lastError: 'non-public data' });
       stats.refused++;
@@ -43,6 +58,10 @@ export async function dispatch(repo: Repo, sender: Sender, communityId: string, 
     if (!canSendNow(d.priority, now)) {
       stats.heldQuietHours++;
       continue; // คงอยู่ในคิว ส่งเมื่อพ้นช่วง quiet hours
+    }
+    if (!canSendUnderQuota(d.priority, level)) {
+      stats.heldLowQuota++;
+      continue; // โควต้าใกล้หมด: คงอยู่ในคิว ส่งเฉพาะ CRITICAL (R3)
     }
     const r = await sender.send(d.payload, d.id).catch((e: unknown) => ({ ok: false, status: null, error: e instanceof Error ? e.message : String(e) }));
     const attemptCount = d.attemptCount + 1;

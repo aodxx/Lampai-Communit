@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { lineSender } from './adapters/line.ts';
+import { lineQuota } from './adapters/lineQuota.ts';
 import type { Actor, IncomingItem } from './engine/types.ts';
 import { weatherFetchJob } from './jobs/weatherFetch.ts';
 import { withJobRun } from './jobs/run.ts';
@@ -67,7 +68,7 @@ async function main() {
             q.forEach((d) => console.log(`[${d.priority}] ${d.payload}\n---`));
             return { queued: q.length };
           }
-          return { ...(await dispatch(repo, lineSender(env('LINE_CHANNEL_ACCESS_TOKEN'), process.env.LINE_TARGET ?? 'broadcast'), communityId, ctx.now)) };
+          return { ...(await dispatch(repo, lineSender(env('LINE_CHANNEL_ACCESS_TOKEN'), process.env.LINE_TARGET ?? 'broadcast'), communityId, ctx.now, { quota: lineQuota(env('LINE_CHANNEL_ACCESS_TOKEN')) })) };
         }
         case 'healthcheck': {
           const adminTarget = process.env.ADMIN_LINE_TARGET;
@@ -75,7 +76,8 @@ async function main() {
           const admin = adminTarget ? lineSender(env('LINE_CHANNEL_ACCESS_TOKEN'), adminTarget) : null;
           const wanted = process.env.HEALTH_EXPECTED_JOBS?.split(',').map((x) => x.trim()).filter(Boolean);
           const expected = wanted ? DEFAULT_EXPECTED_JOBS.filter((e) => wanted.includes(e.job)) : undefined;
-          return await runHealthcheck(ctx, admin, { dryRun: flag('dry-run'), expected, onText: console.log });
+          const lineToken = process.env.LINE_CHANNEL_ACCESS_TOKEN;
+          return await runHealthcheck(ctx, admin, { dryRun: flag('dry-run'), expected, quota: lineToken ? lineQuota(lineToken) : undefined, onText: console.log });
         }
         default:
           throw new Error(`ไม่รู้จัก job: ${sub}\n${USAGE}`);

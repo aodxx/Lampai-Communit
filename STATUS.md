@@ -5,12 +5,12 @@
 
 | รายการ | ค่า |
 |---|---|
-| อัปเดตล่าสุด | 2026-09-29 (เพิ่ม healthcheck) |
+| อัปเดตล่าสุด | 2026-09-29 (เพิ่ม healthcheck + ควบคุมโควต้า LINE) |
 | เวอร์ชันโค้ด | 0.1.0 |
 | เวอร์ชัน PRD | 0.2 (Draft for Review) |
 | เฟสปัจจุบัน | **Phase 1 (MVP) — แกนระบบเสร็จ, ยังไม่ครบตามขอบเขต** |
 | ความพร้อมภาพรวม Phase 1 | ประมาณ 55% (แกนโค้ดเสร็จ; ขาด TTS, Admin PWA, jobs ปฏิบัติการ, การตั้งค่าจริง) |
-| สุขภาพโค้ด | `npm run typecheck` ✅ · `npm test` ✅ 45/45 (ตรวจเมื่อ 2026-09-29) |
+| สุขภาพโค้ด | `npm run typecheck` ✅ · `npm test` ✅ 55/55 (ตรวจเมื่อ 2026-09-29) |
 | สภาพแวดล้อมจริง | ❓ ยังไม่ยืนยันว่ามี Supabase / LINE OA / GitHub Secrets ตั้งไว้แล้ว |
 | Blocker หลัก | ต้องให้เจ้าของโปรเจกต์ตอบคำถาม PRD ข้อ 17 (#1, #2, #4, #8, #10) |
 
@@ -43,7 +43,7 @@
 | 7 | Document / OCR | ❌ Phase 2 |
 | 8 | Audio / TTS | ❌ ขั้นถัดไป |
 | 9 | Daily Briefing | ✅ |
-| 10 | Notification / Delivery | ✅ LINE Text (idempotent, retry ≤ 3, quiet hours) |
+| 10 | Notification / Delivery | ✅ LINE Text (idempotent, retry ≤ 3, quiet hours, คุมโควต้า: ≥95% ส่งเฉพาะ CRITICAL) |
 | 11 | User / Role | 🟡 schema + RLS เสร็จ; API/PWA ยังไม่ทำ |
 | 12 | Audit / System Jobs | ✅ `audit_logs`, `job_runs` |
 
@@ -94,7 +94,7 @@
 3. ตั้ง Supabase (staging) + LINE OA/กลุ่มทดสอบ + GitHub Secrets → รัน workflow `jobs` แบบ dry-run
 4. Vertical slice จริงแบบ end-to-end: `announce → publish → dispatch → LINE` บน staging
 5. TTS น้องจุ่นจ้าน + ส่ง LINE Audio (หลังตอบ PRD #9 เรื่องภาษาถิ่น)
-6. ขั้น 5 ที่เหลือ: ตัดสินใจความถี่ scheduler, กลไก CRITICAL (#8), ควบคุมโควต้า LINE, retention_cleanup
+6. ขั้น 5 ที่เหลือ: ตัดสินใจความถี่ scheduler, กลไก CRITICAL (#8), retention_cleanup (รอ #10)
 7. Admin PWA ขั้นต่ำ (login, จัดการประกาศ, ดูการส่ง, ดู job runs)
 
 ## 8. วิธีอัปเดตไฟล์นี้

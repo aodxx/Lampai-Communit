@@ -92,7 +92,7 @@
 - [ ] 💻 ตัดสินใจเรื่องความถี่ scheduler (ตอนนี้ 15 นาที vs PRD 5 นาที) และปรับ `jobs.yml`
 - [ ] 💻 กลไกงาน CRITICAL ตามคำตอบ #8 (เช่น trigger `workflow_dispatch` ทันทีหลัง publish)
 - [ ] 💻 ตรวจ/เพิ่ม structured log ต่อ job: new/updated/skipped/failed (NFR-006)
-- [ ] 💻 ควบคุมโควต้า LINE + แจ้งเตือนก่อนเต็ม (NFR-005, R3)
+- [x] 💻 ควบคุมโควต้า LINE + แจ้งเตือนก่อนเต็ม (NFR-005, R3) — โค้ด+เทสต์เสร็จ: แจ้งผู้ดูแลที่ 80%/95%/หมด, โควต้า ≥95% ส่งเฉพาะ CRITICAL (`src/engine/quota.ts`, `src/adapters/lineQuota.ts`); ⏳ ยังไม่ทดสอบกับ LINE จริง และยังไม่ได้ตั้งเพดานตามแผนที่ใช้จริง (PRD ข้อ 17 #3)
 - [ ] 💻 (SHOULD) ตรวจการเปลี่ยนแปลงสำคัญของอากาศเทียบรอบก่อน (FR-803)
 - [ ] 💻 job `retention_cleanup` ตามนโยบาย #10
 - [ ] ✏️ เพิ่มเทสต์สำหรับทุกฟีเจอร์ใหม่ (ทั้ง engine และ scenario)

@@ -1,5 +1,6 @@
 import { alertedAtFrom, evaluateHealth, formatHealthAlert, LOOKBACK_HOURS, shouldAlert, type ExpectedJob } from '../engine/health.ts';
 import type { Ctx } from './announcements.ts';
+import type { QuotaProvider } from '../adapters/lineQuota.ts';
 import type { Sender } from './delivery.ts';
 
 export interface HealthcheckStats extends Record<string, unknown> {
@@ -18,12 +19,21 @@ export interface HealthcheckStats extends Record<string, unknown> {
 export async function runHealthcheck(
   ctx: Ctx,
   adminSender: Sender | null,
-  opts: { dryRun?: boolean; expected?: ExpectedJob[]; onText?: (text: string) => void } = {},
+  opts: { dryRun?: boolean; expected?: ExpectedJob[]; quota?: QuotaProvider; onText?: (text: string) => void } = {},
 ): Promise<HealthcheckStats> {
   const since = new Date(ctx.now.getTime() - LOOKBACK_HOURS * 3_600_000).toISOString();
   const jobs = await ctx.repo.recentJobRuns(ctx.communityId, since);
   const deliveries = await ctx.repo.listUnhealthyDeliveries(ctx.communityId, since);
-  const issues = evaluateHealth({ now: ctx.now, jobs, deliveries, expected: opts.expected });
+  let quota = null;
+  let quotaError: string | null = null;
+  if (opts.quota) {
+    try {
+      quota = await opts.quota.get();
+    } catch (e) {
+      quotaError = e instanceof Error ? e.message : String(e);
+    }
+  }
+  const issues = evaluateHealth({ now: ctx.now, jobs, deliveries, expected: opts.expected, quota, quotaError });
 
   const already = alertedAtFrom(jobs, ctx.now);
   const fresh = issues.filter((i) => shouldAlert(i, already, ctx.now));

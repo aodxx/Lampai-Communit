@@ -1,4 +1,5 @@
-import { formatThaiDate, formatThaiTime } from './thai.ts';
+import { quotaLevel, quotaPercent, type QuotaInfo } from './quota.ts';
+import { bangkokDateKey, formatThaiDate, formatThaiTime } from './thai.ts';
 import type { Priority } from './types.ts';
 
 /** NFR-003: ความล้มเหลวของ job ต้องถูกบันทึกและแจ้งผู้ดูแลภายใน 1 ชม. → healthcheck รันทุกชั่วโมง */
@@ -65,6 +66,10 @@ export function evaluateHealth(input: {
   jobs: JobRunRecord[];
   deliveries: DeliveryHealthRow[];
   expected?: ExpectedJob[];
+  /** โควต้า LINE (ไม่ส่ง = ไม่ตรวจ) */
+  quota?: QuotaInfo | null;
+  /** ตรวจโควต้าไม่ได้ (เช่น token ไม่มีสิทธิ์/API ล่ม) */
+  quotaError?: string | null;
 }): HealthIssue[] {
   const { now, jobs, deliveries } = input;
   const expected = input.expected ?? DEFAULT_EXPECTED_JOBS;
@@ -109,6 +114,19 @@ export function evaluateHealth(input: {
     } else if (d.priority !== 'critical' && ageMin > OTHER_QUEUED_HOURS * 60) {
       issues.push({ key: `delivery_slow:${d.id}`, severity: 'warning', message: `ข้อความ (${d.priority}) ค้างในคิว ${Math.floor(ageMin / 60)} ชม.` });
     }
+  }
+
+  // 5) โควต้า LINE: แจ้งครั้งเดียวต่อระดับต่อเดือน (โควต้ารีเซ็ตรายเดือน — ใช้เดือนตามเวลาไทยเป็นค่าประมาณ)
+  const month = bangkokDateKey(now).slice(0, 7);
+  if (input.quota) {
+    const level = quotaLevel(input.quota);
+    const pct = quotaPercent(input.quota);
+    const usage = `ใช้ไป ${input.quota.used.toLocaleString('en-US')}/${input.quota.limit?.toLocaleString('en-US') ?? '∞'} ข้อความ${pct === null ? '' : ` (${pct}%)`}`;
+    if (level === 'low') issues.push({ key: `quota:low:${month}`, severity: 'warning', message: `โควต้า LINE ใกล้หมด: ${usage}` });
+    if (level === 'restrict') issues.push({ key: `quota:restrict:${month}`, severity: 'critical', message: `โควต้า LINE เกือบหมด: ${usage} — ระบบส่งเฉพาะ CRITICAL จนกว่าโควต้าจะรีเซ็ต` });
+    if (level === 'exhausted') issues.push({ key: `quota:exhausted:${month}`, severity: 'critical', message: `โควต้า LINE หมดแล้ว: ${usage} — ข้อความจะส่งไม่ออก` });
+  } else if (input.quotaError) {
+    issues.push({ key: `quota_error:${bangkokDateKey(now)}`, severity: 'warning', message: `ตรวจโควต้า LINE ไม่ได้: ${short(input.quotaError)}` });
   }
 
   return issues;
