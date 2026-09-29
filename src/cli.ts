@@ -68,7 +68,7 @@ async function main() {
             q.forEach((d) => console.log(`[${d.priority}] ${d.payload}\n---`));
             return { queued: q.length };
           }
-          return { ...(await dispatch(repo, lineSender(env('LINE_CHANNEL_ACCESS_TOKEN'), process.env.LINE_TARGET ?? 'broadcast'), communityId, ctx.now, { quota: lineQuota(env('LINE_CHANNEL_ACCESS_TOKEN')) })) };
+          return { ...(await dispatch(repo, lineSender(env('LINE_CHANNEL_ACCESS_TOKEN'), env('LINE_TARGET')), communityId, ctx.now, { quota: lineQuota(env('LINE_CHANNEL_ACCESS_TOKEN')) })) };
         }
         case 'healthcheck': {
           const adminTarget = process.env.ADMIN_LINE_TARGET;
@@ -95,13 +95,28 @@ async function main() {
     const out = await ingest(ctx, full, admin);
     console.log(JSON.stringify({ result: out.result, id: 'announcement' in out ? out.announcement.id : out.reviewId }));
     if (flag('publish') && 'announcement' in out && out.result === 'created') {
-      await publish(ctx, out.announcement.id, admin);
+      const published = await publish(ctx, out.announcement.id, admin);
+      if (published.priority === 'critical') {
+        await dispatch(repo, lineSender(env('LINE_CHANNEL_ACCESS_TOKEN'), env('LINE_TARGET')), communityId, ctx.now, { quota: lineQuota(env('LINE_CHANNEL_ACCESS_TOKEN')) });
+      }
       console.log('เผยแพร่แล้ว');
     }
     return;
   }
-  if (cmd === 'publish' && sub) return void (await publish(ctx, sub, admin), console.log('เผยแพร่แล้ว'));
-  if (cmd === 'resolve' && sub) return void (await resolve(ctx, sub, positional[2] ?? '', admin), console.log('ปิดเรื่องแล้ว'));
+  if (cmd === 'publish' && sub) {
+    const published = await publish(ctx, sub, admin);
+    if (published.priority === 'critical') {
+      await dispatch(repo, lineSender(env('LINE_CHANNEL_ACCESS_TOKEN'), env('LINE_TARGET')), communityId, ctx.now, { quota: lineQuota(env('LINE_CHANNEL_ACCESS_TOKEN')) });
+    }
+    return void console.log('เผยแพร่แล้ว');
+  }
+  if (cmd === 'resolve' && sub) {
+    const resolved = await resolve(ctx, sub, positional[2] ?? '', admin);
+    if (resolved.priority === 'critical') {
+      await dispatch(repo, lineSender(env('LINE_CHANNEL_ACCESS_TOKEN'), env('LINE_TARGET')), communityId, ctx.now, { quota: lineQuota(env('LINE_CHANNEL_ACCESS_TOKEN')) });
+    }
+    return void console.log('ปิดเรื่องแล้ว');
+  }
 
   console.log(USAGE);
 }
