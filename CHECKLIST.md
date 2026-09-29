@@ -57,7 +57,7 @@
 - [ ] ⚙️ สร้าง LINE Official Account + **กลุ่ม/บัญชีทดสอบ** แยกจากของจริง
 - [ ] ⚙️ ตรวจโควต้าและเงื่อนไขแผนของ LINE / Supabase / (TTS ที่จะเลือก) (PRD ข้อ 18)
 - [ ] ⚙️ ตั้ง GitHub Secrets: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `LINE_CHANNEL_ACCESS_TOKEN`
-- [ ] ⚙️ ตั้ง GitHub Variables: `COMMUNITY_ID`, `LINE_TARGET`
+- [ ] ⚙️ ตั้ง GitHub Variables: `COMMUNITY_ID`, `LINE_TARGET` (และ Secret `ADMIN_LINE_TARGET` สำหรับ healthcheck)
 - [ ] ⚙️ คัดลอก `.env.example` → `.env` (เครื่องนักพัฒนา) กรอกค่า staging
 - [ ] ⚙️ เปิด backup ของ Supabase ตามแผนที่ใช้ (NFR-008)
 
@@ -86,8 +86,9 @@
 
 ## ขั้น 5 — ความน่าเชื่อถือของงานอัตโนมัติ (Phase 1 ที่ยังขาด)
 
-- [ ] 💻 เพิ่ม job `healthcheck` (ทุกชั่วโมง): ตรวจ job ที่ไม่รัน/รันล้มเหลว/deliveries ค้างหรือส่งล้มเหลว แล้วแจ้งผู้ดูแลภายใน 1 ชม. (NFR-003, R4)
-- [ ] 💻 กำหนดช่องทางแจ้งผู้ดูแลเมื่อระบบมีปัญหา (LINE ส่วนตัว/อีเมล) — ห้ามเงียบ
+- [x] 💻 เพิ่ม job `healthcheck` (ทุกชั่วโมง): ตรวจ job ที่ไม่รัน/รันล้มเหลว/ค้าง และ deliveries ค้างหรือส่งล้มเหลว แล้วแจ้งผู้ดูแล (NFR-003, R4) — โค้ด+เทสต์เสร็จ (`src/engine/health.ts`, `src/services/healthcheck.ts`); ⏳ ยังไม่ทดสอบกับ Supabase/LINE จริง
+- [x] 💻 กำหนดช่องทางแจ้งผู้ดูแลเมื่อระบบมีปัญหา — ใช้ LINE push ไป `ADMIN_LINE_TARGET` (ห้ามเป็น broadcast); ถ้าไม่ตั้งค่าแล้วพบปัญหา job จะล้มให้ workflow แจ้งเตือน (ไม่เงียบ)
+- [ ] ⚙️ ตั้ง GitHub Secret `ADMIN_LINE_TARGET` (userId/groupId ของผู้ดูแล) และ Variable `HEALTH_EXPECTED_JOBS` (ถ้าต้องการลดรายการบน staging) แล้วรัน workflow `jobs` → healthcheck แบบ dry-run
 - [ ] 💻 ตัดสินใจเรื่องความถี่ scheduler (ตอนนี้ 15 นาที vs PRD 5 นาที) และปรับ `jobs.yml`
 - [ ] 💻 กลไกงาน CRITICAL ตามคำตอบ #8 (เช่น trigger `workflow_dispatch` ทันทีหลัง publish)
 - [ ] 💻 ตรวจ/เพิ่ม structured log ต่อ job: new/updated/skipped/failed (NFR-006)

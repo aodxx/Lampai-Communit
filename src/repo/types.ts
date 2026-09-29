@@ -1,4 +1,5 @@
 import type { Announcement, AnnouncementUpdate, DataLevel, IncomingItem, Priority } from '../engine/types.ts';
+import type { DeliveryHealthRow, JobRunRecord } from '../engine/health.ts';
 import type { WeatherObs } from '../engine/weather.ts';
 
 export type DeliveryStatus = 'queued' | 'sent' | 'failed' | 'skipped';
@@ -99,4 +100,9 @@ export interface Repo {
   audit(e: AuditEntry): Promise<void>;
   startJob(communityId: string, job: string, at: string): Promise<JobRun>;
   finishJob(run: JobRun, status: 'ok' | 'error', stats: Record<string, unknown>, error?: string): Promise<void>;
+
+  /** ประวัติ job ตั้งแต่ sinceIso (ใหม่→เก่า) สำหรับ healthcheck */
+  recentJobRuns(communityId: string, sinceIso: string): Promise<JobRunRecord[]>;
+  /** deliveries ที่ค้างคิว (อายุเท่าใดก็ได้) + ที่ล้มเหลวตั้งแต่ sinceIso */
+  listUnhealthyDeliveries(communityId: string, sinceIso: string): Promise<DeliveryHealthRow[]>;
 }

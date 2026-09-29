@@ -7,12 +7,15 @@ import { SupabaseRepo } from './repo/supabase.ts';
 import { ingest, publish, resolve, runScheduler, type Ctx } from './services/announcements.ts';
 import { runBriefing } from './services/briefing.ts';
 import { dispatch } from './services/delivery.ts';
+import { DEFAULT_EXPECTED_JOBS } from './engine/health.ts';
+import { runHealthcheck } from './services/healthcheck.ts';
 
 const USAGE = `ใช้งาน: node src/cli.ts <คำสั่ง>
   job weather                     ดึงอากาศ (Open-Meteo) เก็บลงฐานข้อมูล
   job scheduler                   เปลี่ยนสถานะตามเวลา + สร้างการเตือน
   job briefing [--slot morning] [--dry-run]   ประกอบ/ตัดสินส่ง Briefing
   job dispatch [--dry-run]        ส่งคิวข้อความผ่าน LINE
+  job healthcheck [--dry-run]     ตรวจ job/คิวส่ง แล้วแจ้งผู้ดูแล (ADMIN_LINE_TARGET) เมื่อพบปัญหาใหม่
   announce <file.json> [--publish]   สร้างประกาศจากไฟล์ (เป็น draft; --publish เพื่อเผยแพร่)
   publish <announcement-id>       เผยแพร่ draft
   resolve <announcement-id> "<ข้อความสรุป>"   ปิดเรื่อง`;
@@ -65,6 +68,14 @@ async function main() {
             return { queued: q.length };
           }
           return { ...(await dispatch(repo, lineSender(env('LINE_CHANNEL_ACCESS_TOKEN'), process.env.LINE_TARGET ?? 'broadcast'), communityId, ctx.now)) };
+        }
+        case 'healthcheck': {
+          const adminTarget = process.env.ADMIN_LINE_TARGET;
+          if (adminTarget === 'broadcast') throw new Error('ADMIN_LINE_TARGET ต้องเป็น userId/groupId ของผู้ดูแล ห้ามเป็น broadcast (จะส่งถึงทั้งชุมชน)');
+          const admin = adminTarget ? lineSender(env('LINE_CHANNEL_ACCESS_TOKEN'), adminTarget) : null;
+          const wanted = process.env.HEALTH_EXPECTED_JOBS?.split(',').map((x) => x.trim()).filter(Boolean);
+          const expected = wanted ? DEFAULT_EXPECTED_JOBS.filter((e) => wanted.includes(e.job)) : undefined;
+          return await runHealthcheck(ctx, admin, { dryRun: flag('dry-run'), expected, onText: console.log });
         }
         default:
           throw new Error(`ไม่รู้จัก job: ${sub}\n${USAGE}`);

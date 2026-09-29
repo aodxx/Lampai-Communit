@@ -5,12 +5,13 @@ on:
     - cron: '0 */3 * * *'    # weather: ทุก 3 ชม.
     - cron: '*/15 * * * *'   # tick: scheduler (เปลี่ยนสถานะ/เตือน) + dispatch (ส่งคิว)
     - cron: '30 23 * * *'    # briefing เช้า 06:30 เวลาไทย
+    - cron: '20 * * * *'     # healthcheck: ทุกชั่วโมง (NFR-003)
   workflow_dispatch:
     inputs:
       job:
         description: งานที่จะรัน
         type: choice
-        options: [tick, weather, briefing]
+        options: [tick, weather, briefing, healthcheck]
         default: tick
       dry_run:
         description: ทดลอง (briefing แสดงผลอย่างเดียว ไม่บันทึก/ไม่ส่ง)
@@ -31,6 +32,8 @@ jobs:
       LINE_CHANNEL_ACCESS_TOKEN: ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}
       COMMUNITY_ID: ${{ vars.COMMUNITY_ID }}
       LINE_TARGET: ${{ vars.LINE_TARGET }}
+      ADMIN_LINE_TARGET: ${{ secrets.ADMIN_LINE_TARGET }}   # userId/groupId ของผู้ดูแล (ไม่ใช่กลุ่มชุมชน)
+      HEALTH_EXPECTED_JOBS: ${{ vars.HEALTH_EXPECTED_JOBS }} # เว้นว่าง = ตรวจครบ; ใช้ลดรายการบน staging
       EVENT_SCHEDULE: ${{ github.event.schedule }}
       INPUT_JOB: ${{ inputs.job }}
       INPUT_DRY: ${{ inputs.dry_run }}
@@ -47,6 +50,7 @@ jobs:
           case "$EVENT_SCHEDULE" in
             "0 */3 * * *") job=weather ;;
             "30 23 * * *") job=briefing ;;
+            "20 * * * *") job=healthcheck ;;
             "*/15 * * * *") job=tick ;;
             *) job="$INPUT_JOB" ;;
           esac
@@ -67,3 +71,6 @@ jobs:
         run: |
           node src/cli.ts job briefing --slot morning ${{ steps.pick.outputs.dry }}
           node src/cli.ts job dispatch ${{ steps.pick.outputs.dry }}
+      - name: healthcheck
+        if: steps.pick.outputs.job == 'healthcheck'
+        run: node src/cli.ts job healthcheck ${{ steps.pick.outputs.dry }}

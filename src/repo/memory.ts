@@ -1,4 +1,5 @@
 import type { Announcement, AnnouncementUpdate } from '../engine/types.ts';
+import type { DeliveryHealthRow, JobRunRecord } from '../engine/health.ts';
 import type { WeatherObs } from '../engine/weather.ts';
 import type { AuditEntry, BriefingRow, Delivery, JobRun, PendingNews, Repo, ReviewItem } from './types.ts';
 
@@ -91,5 +92,16 @@ export class MemoryRepo implements Repo {
   async finishJob(run: JobRun, status: 'ok' | 'error', stats: Record<string, unknown>, error?: string) {
     const j = this.jobs.find((x) => x.run.id === run.id);
     if (j) Object.assign(j, { status, stats, error });
+  }
+  async recentJobRuns(communityId: string, sinceIso: string): Promise<JobRunRecord[]> {
+    return this.jobs
+      .filter((j) => j.run.communityId === communityId && Date.parse(j.run.startedAt) >= Date.parse(sinceIso))
+      .map((j) => ({ id: j.run.id, job: j.run.job, startedAt: j.run.startedAt, finishedAt: j.status && j.status !== 'running' ? j.run.startedAt : null, status: (j.status ?? 'running') as JobRunRecord['status'], stats: j.stats ?? {}, error: j.error ?? null }))
+      .sort((a, b) => Date.parse(b.startedAt) - Date.parse(a.startedAt));
+  }
+  async listUnhealthyDeliveries(communityId: string, sinceIso: string): Promise<DeliveryHealthRow[]> {
+    return this.deliveries
+      .filter((d) => d.communityId === communityId && (d.status === 'queued' || (d.status === 'failed' && Date.parse(d.createdAt) >= Date.parse(sinceIso))))
+      .map((d) => ({ id: d.id, priority: d.priority, status: d.status as 'queued' | 'failed', createdAt: d.createdAt, attemptCount: d.attemptCount, lastError: d.lastError }));
   }
 }

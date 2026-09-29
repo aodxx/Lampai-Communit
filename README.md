@@ -23,6 +23,7 @@ node --env-file=.env src/cli.ts announce examples/meeting.json --publish
 node --env-file=.env src/cli.ts job briefing --dry-run     # ดูว่าจะพูดอะไร (ไม่บันทึก ไม่ส่ง)
 node --env-file=.env src/cli.ts job dispatch --dry-run     # ดูคิวที่จะส่ง
 node --env-file=.env src/cli.ts resolve <id> "ถนนเปิดใช้งานแล้ว"
+node --env-file=.env src/cli.ts job healthcheck --dry-run  # ตรวจสุขภาพระบบ ดูว่าจะแจ้งผู้ดูแลว่าอะไร (ไม่ส่ง)
 ```
 
 ### งานอัตโนมัติ (GitHub Actions)

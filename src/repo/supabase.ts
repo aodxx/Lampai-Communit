@@ -1,5 +1,6 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { Announcement, AnnouncementUpdate } from '../engine/types.ts';
+import type { DeliveryHealthRow, JobRunRecord } from '../engine/health.ts';
 import type { WeatherObs } from '../engine/weather.ts';
 import type { AuditEntry, BriefingRow, Delivery, JobRun, PendingNews, Repo, ReviewItem } from './types.ts';
 
@@ -129,5 +130,15 @@ export class SupabaseRepo implements Repo {
   }
   async finishJob(run: JobRun, status: 'ok' | 'error', stats: Record<string, unknown>, error?: string) {
     check(await this.db.from('job_runs').update({ finished_at: new Date().toISOString(), status, stats, error: error ?? null }).eq('id', run.id), 'finishJob');
+  }
+  async recentJobRuns(communityId: string, sinceIso: string): Promise<JobRunRecord[]> {
+    const r = await this.db.from('job_runs').select('id, job, started_at, finished_at, status, stats, error').eq('community_id', communityId).gte('started_at', sinceIso).order('started_at', { ascending: false });
+    return check(r, 'recentJobRuns').map((x) => fromRow<JobRunRecord>(x as Row));
+  }
+  async listUnhealthyDeliveries(communityId: string, sinceIso: string): Promise<DeliveryHealthRow[]> {
+    const cols = 'id, priority, status, created_at, attempt_count, last_error';
+    const queued = await this.db.from('deliveries').select(cols).eq('community_id', communityId).eq('status', 'queued');
+    const failed = await this.db.from('deliveries').select(cols).eq('community_id', communityId).eq('status', 'failed').gte('created_at', sinceIso);
+    return [...check(queued, 'unhealthy.queued'), ...check(failed, 'unhealthy.failed')].map((x) => fromRow<DeliveryHealthRow>(x as Row));
   }
 }

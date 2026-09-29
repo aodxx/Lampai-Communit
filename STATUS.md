@@ -5,12 +5,12 @@
 
 | รายการ | ค่า |
 |---|---|
-| อัปเดตล่าสุด | 2026-09-29 |
+| อัปเดตล่าสุด | 2026-09-29 (เพิ่ม healthcheck) |
 | เวอร์ชันโค้ด | 0.1.0 |
 | เวอร์ชัน PRD | 0.2 (Draft for Review) |
 | เฟสปัจจุบัน | **Phase 1 (MVP) — แกนระบบเสร็จ, ยังไม่ครบตามขอบเขต** |
 | ความพร้อมภาพรวม Phase 1 | ประมาณ 55% (แกนโค้ดเสร็จ; ขาด TTS, Admin PWA, jobs ปฏิบัติการ, การตั้งค่าจริง) |
-| สุขภาพโค้ด | `npm run typecheck` ✅ · `npm test` ✅ 26/26 (ตรวจเมื่อ 2026-09-29) |
+| สุขภาพโค้ด | `npm run typecheck` ✅ · `npm test` ✅ 45/45 (ตรวจเมื่อ 2026-09-29) |
 | สภาพแวดล้อมจริง | ❓ ยังไม่ยืนยันว่ามี Supabase / LINE OA / GitHub Secrets ตั้งไว้แล้ว |
 | Blocker หลัก | ต้องให้เจ้าของโปรเจกต์ตอบคำถาม PRD ข้อ 17 (#1, #2, #4, #8, #10) |
 
@@ -56,7 +56,7 @@
 | `briefing_morning` | ✅ | 06:30 เวลาไทย (cron 23:30 UTC) |
 | `delivery_dispatch` | ✅ | รวมอยู่ใน `tick` |
 | `tts_generate` | ❌ | |
-| `healthcheck` (NFR-003) | ❌ | ตอนนี้ความล้มเหลวของ job แจ้งได้แค่ผ่าน workflow ล้ม |
+| `healthcheck` (NFR-003) | 🟡 โค้ด+เทสต์เสร็จ ⏳ ยังไม่ทดสอบจริง | ทุกชั่วโมง (นาทีที่ 20) ตรวจ job ล้มเหลว/หยุดรัน/ค้าง + คิวส่งค้าง/ล้มเหลว → LINE ถึง `ADMIN_LINE_TARGET`; แจ้งครั้งเดียวต่อปัญหา, job หยุดรันเตือนซ้ำทุก 6 ชม. |
 | `retention_cleanup` | ❌ | รอ PRD #10 |
 | `briefing_evening` | ❌ | COULD |
 | `market_fetch`, `news_fetch` | ❌ | Phase 2 |
@@ -89,12 +89,13 @@
 
 ## 7. งานถัดไปที่แนะนำ (เรียงลำดับ)
 
-1. ตอบ PRD ข้อ 17 (#1, #2, #4, #8, #10) และ rotate โทเคนที่หลุด → เจ้าของโปรเจกต์
-2. ตั้ง Supabase (staging) + LINE OA/กลุ่มทดสอบ + GitHub Secrets → รัน workflow `jobs` แบบ dry-run
-3. Vertical slice จริงแบบ end-to-end: `announce → publish → dispatch → LINE` บน staging
-4. เพิ่ม job `healthcheck` + แจ้งผู้ดูแลเมื่อ job ล้ม (NFR-003)
+1. ตั้ง Secret `ADMIN_LINE_TARGET` แล้วทดสอบ healthcheck บน staging
+2. ตอบ PRD ข้อ 17 (#1, #2, #4, #8, #10) และ rotate โทเคนที่หลุด → เจ้าของโปรเจกต์
+3. ตั้ง Supabase (staging) + LINE OA/กลุ่มทดสอบ + GitHub Secrets → รัน workflow `jobs` แบบ dry-run
+4. Vertical slice จริงแบบ end-to-end: `announce → publish → dispatch → LINE` บน staging
 5. TTS น้องจุ่นจ้าน + ส่ง LINE Audio (หลังตอบ PRD #9 เรื่องภาษาถิ่น)
-6. Admin PWA ขั้นต่ำ (login, จัดการประกาศ, ดูการส่ง, ดู job runs)
+6. ขั้น 5 ที่เหลือ: ตัดสินใจความถี่ scheduler, กลไก CRITICAL (#8), ควบคุมโควต้า LINE, retention_cleanup
+7. Admin PWA ขั้นต่ำ (login, จัดการประกาศ, ดูการส่ง, ดู job runs)
 
 ## 8. วิธีอัปเดตไฟล์นี้
 
