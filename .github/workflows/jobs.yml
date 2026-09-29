@@ -1,0 +1,69 @@
+name: jobs
+# เวลา cron เป็น UTC (ไทย = UTC+7) และ GitHub อาจหน่วงได้หลายนาที — งาน CRITICAL ต้องไม่พึ่ง cron (PRD ข้อ 11)
+on:
+  schedule:
+    - cron: '0 */3 * * *'    # weather: ทุก 3 ชม.
+    - cron: '*/15 * * * *'   # tick: scheduler (เปลี่ยนสถานะ/เตือน) + dispatch (ส่งคิว)
+    - cron: '30 23 * * *'    # briefing เช้า 06:30 เวลาไทย
+  workflow_dispatch:
+    inputs:
+      job:
+        description: งานที่จะรัน
+        type: choice
+        options: [tick, weather, briefing]
+        default: tick
+      dry_run:
+        description: ทดลอง (briefing แสดงผลอย่างเดียว ไม่บันทึก/ไม่ส่ง)
+        type: boolean
+        default: true
+concurrency:
+  group: lampai-jobs
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      LINE_CHANNEL_ACCESS_TOKEN: ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}
+      COMMUNITY_ID: ${{ vars.COMMUNITY_ID }}
+      LINE_TARGET: ${{ vars.LINE_TARGET }}
+      EVENT_SCHEDULE: ${{ github.event.schedule }}
+      INPUT_JOB: ${{ inputs.job }}
+      INPUT_DRY: ${{ inputs.dry_run }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: เลือกงาน
+        id: pick
+        run: |
+          case "$EVENT_SCHEDULE" in
+            "0 */3 * * *") job=weather ;;
+            "30 23 * * *") job=briefing ;;
+            "*/15 * * * *") job=tick ;;
+            *) job="$INPUT_JOB" ;;
+          esac
+          dry=""
+          if [ -z "$EVENT_SCHEDULE" ] && [ "$INPUT_DRY" = "true" ]; then dry="--dry-run"; fi
+          echo "job=$job" >> "$GITHUB_OUTPUT"
+          echo "dry=$dry" >> "$GITHUB_OUTPUT"
+      - name: weather
+        if: steps.pick.outputs.job == 'weather'
+        run: node src/cli.ts job weather
+      - name: tick
+        if: steps.pick.outputs.job == 'tick'
+        run: |
+          node src/cli.ts job scheduler
+          node src/cli.ts job dispatch ${{ steps.pick.outputs.dry }}
+      - name: briefing
+        if: steps.pick.outputs.job == 'briefing'
+        run: |
+          node src/cli.ts job briefing --slot morning ${{ steps.pick.outputs.dry }}
+          node src/cli.ts job dispatch ${{ steps.pick.outputs.dry }}

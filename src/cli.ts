@@ -1,0 +1,99 @@
+import { readFileSync } from 'node:fs';
+import { lineSender } from './adapters/line.ts';
+import type { Actor, IncomingItem } from './engine/types.ts';
+import { weatherFetchJob } from './jobs/weatherFetch.ts';
+import { withJobRun } from './jobs/run.ts';
+import { SupabaseRepo } from './repo/supabase.ts';
+import { ingest, publish, resolve, runScheduler, type Ctx } from './services/announcements.ts';
+import { runBriefing } from './services/briefing.ts';
+import { dispatch } from './services/delivery.ts';
+
+const USAGE = `ใช้งาน: node src/cli.ts <คำสั่ง>
+  job weather                     ดึงอากาศ (Open-Meteo) เก็บลงฐานข้อมูล
+  job scheduler                   เปลี่ยนสถานะตามเวลา + สร้างการเตือน
+  job briefing [--slot morning] [--dry-run]   ประกอบ/ตัดสินส่ง Briefing
+  job dispatch [--dry-run]        ส่งคิวข้อความผ่าน LINE
+  announce <file.json> [--publish]   สร้างประกาศจากไฟล์ (เป็น draft; --publish เพื่อเผยแพร่)
+  publish <announcement-id>       เผยแพร่ draft
+  resolve <announcement-id> "<ข้อความสรุป>"   ปิดเรื่อง`;
+
+function env(name: string): string {
+  const v = process.env[name];
+  if (!v) throw new Error(`ต้องตั้งค่า environment variable ${name}`);
+  return v;
+}
+
+const args = process.argv.slice(2);
+const flag = (n: string) => args.includes(`--${n}`);
+const opt = (n: string, d: string) => {
+  const i = args.indexOf(`--${n}`);
+  return i >= 0 && args[i + 1] ? args[i + 1]! : d;
+};
+const VALUE_FLAGS = new Set(['--slot']);
+const positional: string[] = [];
+for (let i = 0; i < args.length; i++) {
+  const a = args[i]!;
+  if (VALUE_FLAGS.has(a)) i++;
+  else if (!a.startsWith('--')) positional.push(a);
+}
+
+async function main() {
+  const [cmd, sub] = positional;
+  if (!cmd || cmd === 'help') return console.log(USAGE);
+
+  const repo = new SupabaseRepo(env('SUPABASE_URL'), env('SUPABASE_SERVICE_ROLE_KEY'));
+  const communityId = env('COMMUNITY_ID');
+  const ctx: Ctx = { repo, communityId, now: new Date() };
+  const admin: Actor = { id: 'cli', role: 'admin' }; // CLI ใช้โดยผู้ดูแลระบบเท่านั้น (ต้องถือ service-role key)
+
+  if (cmd === 'job') {
+    const stats = await withJobRun(repo, communityId, `${sub}${flag('dry-run') ? ':dry' : ''}`, ctx.now, async () => {
+      switch (sub) {
+        case 'weather':
+          return await weatherFetchJob(ctx);
+        case 'scheduler':
+          return { ...(await runScheduler(ctx)) };
+        case 'briefing': {
+          const r = await runBriefing(ctx, { slot: opt('slot', 'morning'), dryRun: flag('dry-run') });
+          if (r.status === 'dry_run') console.log(r.result.text ?? `(ข้าม) ${r.result.reason}`);
+          return { status: r.status, decision: 'result' in r ? r.result.decision : r.briefing.decision };
+        }
+        case 'dispatch': {
+          if (flag('dry-run')) {
+            const q = await repo.listDispatchable(communityId);
+            q.forEach((d) => console.log(`[${d.priority}] ${d.payload}\n---`));
+            return { queued: q.length };
+          }
+          return { ...(await dispatch(repo, lineSender(env('LINE_CHANNEL_ACCESS_TOKEN'), process.env.LINE_TARGET ?? 'broadcast'), communityId, ctx.now)) };
+        }
+        default:
+          throw new Error(`ไม่รู้จัก job: ${sub}\n${USAGE}`);
+      }
+    });
+    return console.log(JSON.stringify(stats));
+  }
+
+  if (cmd === 'announce') {
+    const file = positional[1];
+    if (!file) throw new Error('ระบุไฟล์ JSON');
+    const item = JSON.parse(readFileSync(file, 'utf8')) as Partial<IncomingItem>;
+    const full = { sourceId: process.env.MANUAL_SOURCE_ID ?? '', ...item } as IncomingItem;
+    if (!full.sourceId) throw new Error('ต้องมี sourceId ในไฟล์ หรือตั้ง MANUAL_SOURCE_ID');
+    const out = await ingest(ctx, full, admin);
+    console.log(JSON.stringify({ result: out.result, id: 'announcement' in out ? out.announcement.id : out.reviewId }));
+    if (flag('publish') && 'announcement' in out && out.result === 'created') {
+      await publish(ctx, out.announcement.id, admin);
+      console.log('เผยแพร่แล้ว');
+    }
+    return;
+  }
+  if (cmd === 'publish' && sub) return void (await publish(ctx, sub, admin), console.log('เผยแพร่แล้ว'));
+  if (cmd === 'resolve' && sub) return void (await resolve(ctx, sub, positional[2] ?? '', admin), console.log('ปิดเรื่องแล้ว'));
+
+  console.log(USAGE);
+}
+
+main().catch((e: unknown) => {
+  console.error(e instanceof Error ? e.message : e);
+  process.exit(1);
+});

@@ -1,0 +1,12 @@
+{
+  "type": "meeting",
+  "externalId": "meeting-2026-10",
+  "title": "ประชุมหมู่บ้านประจำเดือน",
+  "body": "ขอเชิญชาวบ้านทุกครัวเรือนเข้าร่วมประชุมประจำเดือน",
+  "location": "ศาลาหมู่บ้าน",
+  "effectiveFrom": "2026-10-10T09:00:00+07:00",
+  "effectiveTo": "2026-10-10T12:00:00+07:00",
+  "remindOffsetsMin": [4320, 120],
+  "priority": "important",
+  "dataLevel": "public"
+}
