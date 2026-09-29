@@ -243,10 +243,14 @@ function staticFile(res: ServerResponse, pathname: string) {
   res.end(readFileSync(file));
 }
 
-const server = createServer((req, res) => {
+export async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise<void> {
   const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
   if (url.pathname.startsWith('/api/')) void api(req, res, url.pathname).catch((error) => fail(res, 500, errorMessage(error)));
   else if (req.method === 'GET') staticFile(res, url.pathname);
   else fail(res, 405, 'ไม่รองรับ HTTP method นี้');
-});
-server.listen(PORT, '0.0.0.0', () => console.log(`Lampai Admin PWA: http://localhost:${PORT} (${demoMode ? 'demo' : 'supabase'})`));
+}
+
+if (process.env.VERCEL !== '1') {
+  const server = createServer((req, res) => void handleRequest(req, res));
+  server.listen(PORT, '0.0.0.0', () => console.log(`Lampai Admin PWA: http://localhost:${PORT} (${demoMode ? 'demo' : 'supabase'})`));
+}
