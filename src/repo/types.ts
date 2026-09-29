@@ -94,6 +94,8 @@ export interface Repo {
 
   /** คืน true ถ้าสร้างใหม่, false ถ้า idempotency key นี้มีแล้ว (ไม่ส่งซ้ำ) */
   insertDeliveryIfAbsent(d: Delivery): Promise<boolean>;
+  /** รายการ delivery สำหรับหน้าผู้ดูแล (เรียงใหม่ไปเก่าและจำกัดจำนวน) */
+  listDeliveries(communityId: string, limit?: number): Promise<Delivery[]>;
   listDispatchable(communityId: string): Promise<Delivery[]>;
   recordAttempt(deliveryId: string, attempt: { ok: boolean; httpStatus: number | null; error: string | null }, patch: Partial<Pick<Delivery, 'status' | 'attemptCount' | 'lastError' | 'sentAt'>>): Promise<void>;
 

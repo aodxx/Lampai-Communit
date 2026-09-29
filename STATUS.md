@@ -5,11 +5,11 @@
 
 | รายการ | ค่า |
 |---|---|
-| อัปเดตล่าสุด | 2026-09-29 (ปิด PRD blocker ขั้น 2 + ปรับสิทธิ์/CRITICAL/LINE target/retention policy) |
+| อัปเดตล่าสุด | 2026-09-29 (สร้าง Admin PWA vertical slice + API contract และตรวจโหมดสาธิตครบ) |
 | เวอร์ชันโค้ด | 0.1.0 |
-| เวอร์ชัน PRD | 0.2 (Draft for Review) |
-| เฟสปัจจุบัน | **Phase 1 (MVP) — แกนระบบเสร็จ, ปิด blocker ขั้น 2 แล้ว; ยังขาด staging/PWA/TTS/retention cleanup** |
-| ความพร้อมภาพรวม Phase 1 | ประมาณ 60% (แกนโค้ดเสร็จ; ขาด TTS, Admin PWA, jobs ปฏิบัติการ/retention, การตั้งค่าจริง) |
+| เวอร์ชัน PRD | 0.3 (Decision Baseline) |
+| เฟสปัจจุบัน | **Phase 1 (MVP) — แกนระบบ + Admin PWA vertical slice เสร็จ; ยังขาด staging/TTS/retention cleanup และการทดสอบบริการจริง** |
+| ความพร้อมภาพรวม Phase 1 | ประมาณ 70% (แกนโค้ดและ PWA local demo เสร็จ; ขาด TTS, retention, staging และการตั้งค่าจริง) |
 | สุขภาพโค้ด | `npm run typecheck` ✅ · `npm test` ✅ 57/57 (ตรวจเมื่อ 2026-09-29) |
 | สภาพแวดล้อมจริง | ❓ ยังไม่ยืนยันว่ามี Supabase / LINE OA / GitHub Secrets ตั้งไว้แล้ว |
 | Blocker หลัก | **ไม่มีแล้วใน PRD ข้อ 17 #1/#2/#4/#8/#10**; ขั้นต่อไปคือ staging + vertical slice จริง |
@@ -25,7 +25,7 @@
 | 3 | Lifecycle + dedup + change detection + freshness | ✅ เสร็จและมีเทสต์ | `src/engine/*`, `engine.test.ts`, `scenario.test.ts` |
 | 4 | Daily Briefing "ไม่ส่งถ้าไม่มีอะไรใหม่" | ✅ เสร็จและมีเทสต์ | `src/engine/briefing.ts`, `src/services/briefing.ts` |
 | 5 | เสียง TTS (น้องจุ่นจ้าน) + LINE Text/Audio | 🟡 LINE Text ✅ · TTS/Audio ❌ | ตาราง `audio_assets` เตรียมไว้ ยังไม่มีโค้ดสร้างเสียง |
-| 6 | Admin PWA ขั้นต่ำ | ❌ ยังไม่เริ่ม | ตอนนี้ใช้ผ่าน CLI เท่านั้น |
+| 6 | Admin PWA ขั้นต่ำ | 🟡 vertical slice เสร็จ · ⏳ ยังไม่ทดสอบ Supabase จริง | `admin/`, `src/admin/server.ts`, `docs/04-architecture.md`, `docs/05-api-contract.md` |
 | 7 | Audit log งานสำคัญ | ✅ เสร็จ | ตาราง append-only (trigger) + บันทึกที่ ingest/publish/resolve/scheduler/briefing |
 
 สัญลักษณ์: ✅ เสร็จ · 🟡 ทำบางส่วน · ⏳ รอยืนยัน/รอปัจจัยภายนอก · ❌ ยังไม่ทำ
@@ -44,7 +44,7 @@
 | 8 | Audio / TTS | ❌ ขั้นถัดไป |
 | 9 | Daily Briefing | ✅ |
 | 10 | Notification / Delivery | ✅ LINE Text (idempotent, retry ≤ 3, quiet hours, คุมโควต้า: ≥95% ส่งเฉพาะ CRITICAL) |
-| 11 | User / Role | 🟡 schema + RLS เสร็จ; API/PWA ยังไม่ทำ |
+| 11 | User / Role | 🟡 schema + RLS + server API เสร็จ; รอทดสอบ Auth จริง |
 | 12 | Audit / System Jobs | ✅ `audit_logs`, `job_runs` |
 
 ## 3. งานอัตโนมัติ (PRD ข้อ 11)
@@ -65,7 +65,7 @@
 
 - PRD ระบุสถานะ "ยังไม่พร้อมเขียนโค้ด (ดูข้อ 18)" แต่โค้ด Phase 1 ถูกเขียนไปแล้ว → **Definition of Ready (PRD ข้อ 18) ยังไม่ผ่านครบ** ค่า threshold ต่าง ๆ ในโค้ดยังเป็น `[สมมติฐาน]` (อยู่ที่ `freshness.ts`, `priority.ts`, `weather.ts`, `briefing.ts`)
 - PRD ข้อ 11 กำหนด scheduler ทุก 5 นาที แต่ workflow ตั้ง 15 นาที (ยอมรับได้เพราะ CRITICAL ส่งทันทีตอน publish — ยืนยันกับเจ้าของ)
-- เอกสารถัดไปตาม PRD (`03-data-model` … `08-delivery`) ยังไม่ถูกเขียน ทั้งที่ schema จริงมีแล้ว → ต้องเขียนย้อนให้ตรงกับของจริง
+- `docs/03-data-model.md` และ `docs/06–08` ยังไม่ถูกเขียน; `docs/04-architecture.md` และ `docs/05-api-contract.md` ถูกเพิ่มแล้วสำหรับ PWA vertical slice
 - ไม่มี dependency/secret scanning ใน repo (SEC-008)
 
 ## 5. ผลการตัดสินใจ PRD ข้อ 17
@@ -89,12 +89,12 @@
 ## 7. งานถัดไปที่แนะนำ (เรียงลำดับ)
 
 1. ตั้ง Secret `ADMIN_LINE_TARGET` แล้วทดสอบ healthcheck บน staging
-2. ตั้ง Supabase (staging) + LINE OA/กลุ่มทดสอบ + GitHub Secrets → รัน workflow `jobs` แบบ dry-run
-3. Vertical slice จริงแบบ end-to-end: `announce → publish → dispatch → LINE` บน staging
-4. ทำ `retention_cleanup` ให้บังคับใช้นโยบายที่ตัดสินแล้ว
-5. TTS น้องจุ่นจ้าน + ส่ง LINE Audio (ภาษาไทยมาตรฐานเป็น baseline)
-6. Admin PWA ขั้นต่ำ (login, จัดการประกาศ, ดูการส่ง, ดู job runs)
-7. เขียน docs/03–08 ให้ตรงกับ schema/โค้ดจริง
+2. ตั้ง Supabase (staging) + LINE OA/กลุ่มทดสอบ + Secrets → รัน workflow `jobs` แบบ dry-run
+3. เชื่อม Admin PWA กับ Supabase Auth จริง และทดสอบสิทธิ์แต่ละ role
+4. Vertical slice จริงแบบ end-to-end: `announce → publish → dispatch → LINE` บน staging
+5. ทำ `retention_cleanup` ให้บังคับใช้นโยบายที่ตัดสินแล้ว
+6. TTS น้องจุ่นจ้าน + ส่ง LINE Audio (ภาษาไทยมาตรฐานเป็น baseline)
+7. เขียน docs/03 และ docs/06–08 ให้ตรงกับ schema/โค้ดจริง
 
 ## 8. วิธีอัปเดตไฟล์นี้
 

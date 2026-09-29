@@ -73,6 +73,13 @@ export class MemoryRepo implements Repo {
     this.deliveries.push(structuredClone(d));
     return true;
   }
+  async listDeliveries(communityId: string, limit = 50) {
+    return this.deliveries
+      .filter((d) => d.communityId === communityId)
+      .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
+      .slice(0, limit)
+      .map((d) => structuredClone(d));
+  }
   async listDispatchable(communityId: string) {
     return this.deliveries.filter((d) => d.communityId === communityId && d.status === 'queued').map((d) => structuredClone(d));
   }

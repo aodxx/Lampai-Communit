@@ -1,0 +1,11 @@
+{
+  "name": "Lampai Community Admin",
+  "short_name": "Lampai Admin",
+  "description": "แผงควบคุมระบบชุมชนบ้านลำพาย",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f4f8f6",
+  "theme_color": "#0f766e",
+  "lang": "th",
+  "icons": []
+}

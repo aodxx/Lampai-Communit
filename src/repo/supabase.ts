@@ -111,6 +111,15 @@ export class SupabaseRepo implements Repo {
     const r = await this.db.from('deliveries').upsert(toRow(d), { onConflict: 'idempotency_key', ignoreDuplicates: true }).select('id');
     return check(r, 'insertDeliveryIfAbsent').length > 0;
   }
+  async listDeliveries(communityId: string, limit = 50) {
+    const r = await this.db
+      .from('deliveries')
+      .select('id, community_id, kind, channel, audience, announcement_id, update_id, briefing_id, priority, data_level, status, attempt_count, last_error, sent_at, created_at, idempotency_key')
+      .eq('community_id', communityId)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+    return check(r, 'listDeliveries').map((x) => fromRow<Delivery>(x as Row));
+  }
   async listDispatchable(communityId: string) {
     const r = await this.db.from('deliveries').select('*').eq('community_id', communityId).eq('status', 'queued').order('created_at', { ascending: true });
     return check(r, 'listDispatchable').map((x) => fromRow<Delivery>(x as Row));

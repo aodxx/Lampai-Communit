@@ -100,17 +100,17 @@
 
 ## ขั้น 6 — Admin PWA ขั้นต่ำ (FR-D01 – D07)
 
-- [ ] 👤 ยืนยันตารางสิทธิ์ PRD ข้อ 12 และการตัดสินเรื่อง SENSITIVE/admin
-- [ ] 💻 เลือกสแต็ก PWA + โฮสติ้ง แล้วเขียน `docs/04-architecture.md` และ `docs/05-api-contract.md` (PWA ↔ Supabase/Automation)
-- [ ] 💻 Login ด้วย Supabase Auth และแสดงเฉพาะสิ่งที่ role อนุญาต (FR-D01)
-- [ ] 💻 สร้าง/แก้/publish/resolve/ยกเลิกประกาศ (FR-D02)
-- [ ] 💻 ดูสถานะการส่ง: สำเร็จ/ล้มเหลว/ข้าม+เหตุผล (FR-D03)
-- [ ] 💻 ดู job runs และข้อผิดพลาด (FR-D04)
+- [x] 👤 ยืนยันตารางสิทธิ์ PRD ข้อ 12 และการตัดสินเรื่อง SENSITIVE/admin — ตาราง permission ใช้ใน `docs/04-architecture.md`; ต้องทดสอบ role จริงบน staging
+- [x] 💻 เลือกสแต็ก PWA + โฮสติ้ง แล้วเขียน `docs/04-architecture.md` และ `docs/05-api-contract.md` (PWA ↔ Supabase/Automation)
+- [x] 💻 Login ด้วย Supabase Auth และแสดงเฉพาะสิ่งที่ role อนุญาต (FR-D01) — มี server auth + local demo; รอทดสอบ credential จริง
+- [x] 💻 สร้าง/แก้/publish/resolve ประกาศ (FR-D02) — ยกเลิกยังไม่ทำใน vertical slice
+- [x] 💻 ดูสถานะการส่ง: สำเร็จ/ล้มเหลว/ข้าม+เหตุผล (FR-D03)
+- [x] 💻 ดู job runs และข้อผิดพลาด (FR-D04)
 - [ ] 💻 (SHOULD) คิวตรวจ `review_queue` (dedup กำกวม) (FR-D05)
 - [ ] 💻 (SHOULD) จัดการ sources (FR-D06) · ใช้งานได้ดีบนมือถือ (FR-D07)
-- [ ] 💻 ตรวจสิทธิ์ฝั่ง server ทุก API ไม่พึ่งการซ่อนปุ่ม (SEC-005)
-- [ ] 💻 ยืนยันว่า service-role key ไม่อยู่ฝั่ง client (SEC-002)
-- [ ] 💻 หน้าหลักโหลด ≤ 3 วินาทีบน 4G (NFR-004)
+- [x] 💻 ตรวจสิทธิ์ฝั่ง server ทุก API ไม่พึ่งการซ่อนปุ่ม (SEC-005)
+- [x] 💻 ยืนยันว่า service-role key ไม่อยู่ฝั่ง client (SEC-002)
+- [ ] 💻 หน้าหลักโหลด ≤ 3 วินาทีบน 4G (NFR-004) — ยังไม่ได้วัดบนเครือข่ายจริง
 
 **เกณฑ์ผ่าน:** ผู้ช่วยผู้ใหญ่บ้านสร้างร่าง → ผู้ใหญ่บ้าน publish → เห็นสถานะการส่ง โดยไม่ต้องใช้ CLI
 
