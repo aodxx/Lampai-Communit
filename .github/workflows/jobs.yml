@@ -3,7 +3,7 @@ name: jobs
 on:
   schedule:
     - cron: '0 */3 * * *'    # weather: ทุก 3 ชม.
-    - cron: '*/15 * * * *'   # tick: scheduler (เปลี่ยนสถานะ/เตือน) + dispatch (ส่งคิว)
+    - cron: '*/5 * * * *'    # tick: fallback scheduler + dispatch; CRITICAL ถูกส่งทันทีตอน publish
     - cron: '30 23 * * *'    # briefing เช้า 06:30 เวลาไทย
     - cron: '20 * * * *'     # healthcheck: ทุกชั่วโมง (NFR-003)
   workflow_dispatch:
