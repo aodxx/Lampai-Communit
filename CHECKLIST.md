@@ -22,7 +22,7 @@
 
 ## ขั้น 1 — ปิดความปลอดภัยที่ค้างอยู่ (ทำก่อนเสมอ)
 
-- [ ] 👤 **Revoke โทเคน GitHub ที่เคยถูกวางในแชต** แล้วสร้างใหม่แบบ fine-grained จำกัดเฉพาะรีโปนี้ (SEC-007, R5)
+- [ ×] 👤 **Revoke โทเคน GitHub ที่เคยถูกวางในแชต** แล้วสร้างใหม่แบบ fine-grained จำกัดเฉพาะรีโปนี้ (SEC-007, R5)
 - [ ] ⚙️ เปิด GitHub secret scanning + Dependabot ใน repo (SEC-008)
 - [ ] ⚙️ ตั้ง branch protection บน `main` (ต้องผ่าน CI + ต้องมี review)
 - [ ] ตรวจว่า `.env` ไม่ถูก commit (ตอนนี้ `.gitignore` กันไว้แล้ว) และ `git log -p | grep -iE "key|token|secret"` ไม่พบค่าจริง
