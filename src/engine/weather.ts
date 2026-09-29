@@ -10,7 +10,7 @@ export interface WeatherObs {
   fetchedAt: string;
 }
 
-/** เกณฑ์ "อากาศมีนัยสำคัญ" [สมมติฐาน] — PRD ข้อ 17 #4 รอเจ้าของยืนยัน */
+/** เกณฑ์ "อากาศมีนัยสำคัญ" — ใช้เป็นกฎแจ้งเตือนของชุมชน: ฝน/ลม/ร้อนจัด/พายุ */
 export const WEATHER_THRESHOLDS = {
   precipProbability: 70,
   precipitationMm: 10,
