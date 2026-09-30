@@ -51,26 +51,29 @@ jobs:
             "0 */3 * * *") job=weather ;;
             "30 23 * * *") job=briefing ;;
             "20 * * * *") job=healthcheck ;;
-            "*/15 * * * *") job=tick ;;
+            "*/5 * * * *") job=tick ;;   # ต้องตรงกับ cron ด้านบนเป๊ะ ๆ ไม่งั้น job ว่างและไม่ทำงาน
             *) job="$INPUT_JOB" ;;
           esac
           dry=""
           if [ -z "$EVENT_SCHEDULE" ] && [ "$INPUT_DRY" = "true" ]; then dry="--dry-run"; fi
           echo "job=$job" >> "$GITHUB_OUTPUT"
           echo "dry=$dry" >> "$GITHUB_OUTPUT"
+      - name: ตรวจการตั้งค่า
+        id: preflight
+        run: scripts/preflight.sh "${{ steps.pick.outputs.job }}" "${{ github.event_name == 'schedule' }}"
       - name: weather
-        if: steps.pick.outputs.job == 'weather'
+        if: steps.pick.outputs.job == 'weather' && steps.preflight.outputs.skip != 'true'
         run: node src/cli.ts job weather
       - name: tick
-        if: steps.pick.outputs.job == 'tick'
+        if: steps.pick.outputs.job == 'tick' && steps.preflight.outputs.skip != 'true'
         run: |
           node src/cli.ts job scheduler
           node src/cli.ts job dispatch ${{ steps.pick.outputs.dry }}
       - name: briefing
-        if: steps.pick.outputs.job == 'briefing'
+        if: steps.pick.outputs.job == 'briefing' && steps.preflight.outputs.skip != 'true'
         run: |
           node src/cli.ts job briefing --slot morning ${{ steps.pick.outputs.dry }}
           node src/cli.ts job dispatch ${{ steps.pick.outputs.dry }}
       - name: healthcheck
-        if: steps.pick.outputs.job == 'healthcheck'
+        if: steps.pick.outputs.job == 'healthcheck' && steps.preflight.outputs.skip != 'true'
         run: node src/cli.ts job healthcheck ${{ steps.pick.outputs.dry }}

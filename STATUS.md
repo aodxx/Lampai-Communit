@@ -10,7 +10,7 @@
 | เวอร์ชัน PRD | 0.3 (Decision Baseline) |
 | เฟสปัจจุบัน | **Phase 1 (MVP) — แกนระบบ + Admin PWA vertical slice เสร็จ; ยังขาด staging/TTS/retention cleanup และการทดสอบบริการจริง** |
 | ความพร้อมภาพรวม Phase 1 | ประมาณ 70% (แกนโค้ดและ PWA local demo เสร็จ; ขาด TTS, retention, staging และการตั้งค่าจริง) |
-| สุขภาพโค้ด | `npm run typecheck` ✅ · `npm test` ✅ 57/57 (ตรวจเมื่อ 2026-09-29) |
+| สุขภาพโค้ด | `npm run typecheck` ✅ · `npm test` ✅ 59/59 (ตรวจเมื่อ 2026-09-29) |
 | สภาพแวดล้อมจริง | ❓ ยังไม่ยืนยันว่ามี Supabase / LINE OA / GitHub Secrets ตั้งไว้แล้ว |
 | Blocker หลัก | **ไม่มีแล้วใน PRD ข้อ 17 #1/#2/#4/#8/#10**; ขั้นต่อไปคือ staging + vertical slice จริง |
 
@@ -62,6 +62,9 @@
 | `market_fetch`, `news_fetch` | ❌ | Phase 2 |
 
 ## 4. ความไม่สอดคล้องที่ต้องรู้
+
+- **[แก้แล้ว 2026-09-29]** workflow `jobs` ตั้ง cron tick เป็นทุก 5 นาที แต่ `case` ยังเป็น 15 นาที → tick ไม่เคยทำงาน (รันแล้วขึ้น "สำเร็จ" เฉยๆ); ตอนนี้แก้แล้วและมีเทสต์ `src/workflow.test.ts` กันซ้ำ
+- **[แก้แล้ว]** งาน weather ตามเวลาล้มเหลวซ้ำ ๆ เพราะยังไม่ได้ตั้ง GitHub Secrets — ตอนนี้ `scripts/preflight.sh` จะข้ามพร้อมคำเตือนถ้ายังไม่ตั้งค่า และล้มพร้อมบอกชื่อค่าที่ขาดถ้าตั้งไม่ครบ (ดู `docs/OWNER-TODO.md` ขั้น 3)
 
 - PRD ระบุสถานะ "ยังไม่พร้อมเขียนโค้ด (ดูข้อ 18)" แต่โค้ด Phase 1 ถูกเขียนไปแล้ว → **Definition of Ready (PRD ข้อ 18) ยังไม่ผ่านครบ** ค่า threshold ต่าง ๆ ในโค้ดยังเป็น `[สมมติฐาน]` (อยู่ที่ `freshness.ts`, `priority.ts`, `weather.ts`, `briefing.ts`)
 - PRD ข้อ 11 กำหนด scheduler ทุก 5 นาที แต่ workflow ตั้ง 15 นาที (ยอมรับได้เพราะ CRITICAL ส่งทันทีตอน publish — ยืนยันกับเจ้าของ)

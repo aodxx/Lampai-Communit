@@ -4,7 +4,7 @@
 
 - ข้อกำหนด: [`PRD.md`](PRD.md) · โครงสร้าง: [`docs/02-domain-model.md`](docs/02-domain-model.md)
 - หลักคิด: ถ้าไม่มีอะไรใหม่ ระบบไม่พูดซ้ำ
-- สถานะโปรเจกต์: [`STATUS.md`](STATUS.md) · เช็คลิสต์ทำงานต่อ: [`CHECKLIST.md`](CHECKLIST.md)
+- สถานะโปรเจกต์: [`STATUS.md`](STATUS.md) · เช็คลิสต์ทำงานต่อ: [`CHECKLIST.md`](CHECKLIST.md) · วิธีทำงานร่วมกัน: [`CONTRIBUTING.md`](CONTRIBUTING.md) · สิ่งที่เจ้าของต้องทำเอง: [`docs/OWNER-TODO.md`](docs/OWNER-TODO.md)
 
 ## เริ่มใช้งาน
 
