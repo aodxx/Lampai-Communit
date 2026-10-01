@@ -30,10 +30,10 @@ jobs:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       LINE_CHANNEL_ACCESS_TOKEN: ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}
-      COMMUNITY_ID: ${{ vars.COMMUNITY_ID }}
-      LINE_TARGET: ${{ vars.LINE_TARGET }}
+      COMMUNITY_ID: ${{ vars.COMMUNITY_ID || secrets.COMMUNITY_ID }}
+      LINE_TARGET: ${{ vars.LINE_TARGET || secrets.LINE_TARGET }}
       ADMIN_LINE_TARGET: ${{ secrets.ADMIN_LINE_TARGET }}   # userId/groupId ของผู้ดูแล (ไม่ใช่กลุ่มชุมชน)
-      HEALTH_EXPECTED_JOBS: ${{ vars.HEALTH_EXPECTED_JOBS }} # เว้นว่าง = ตรวจครบ; ใช้ลดรายการบน staging
+      HEALTH_EXPECTED_JOBS: ${{ vars.HEALTH_EXPECTED_JOBS || secrets.HEALTH_EXPECTED_JOBS }} # เว้นว่าง = ตรวจครบ; ใช้ลดรายการบน staging
       EVENT_SCHEDULE: ${{ github.event.schedule }}
       INPUT_JOB: ${{ inputs.job }}
       INPUT_DRY: ${{ inputs.dry_run }}

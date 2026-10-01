@@ -21,7 +21,7 @@
 Repo → Settings → Secrets and variables → Actions
 
 - [ ] 3.1 **Secrets:** `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `LINE_CHANNEL_ACCESS_TOKEN`, `ADMIN_LINE_TARGET`
-- [ ] 3.2 **Variables:** `COMMUNITY_ID` (จากขั้น 2.2), `LINE_TARGET` (= group ID ของกลุ่มทดสอบ — **ห้ามใส่ `broadcast`**), `HEALTH_EXPECTED_JOBS` (บน staging ที่ยังไม่เปิด Briefing ให้ใส่ `weather,scheduler,dispatch`)
+- [ ] 3.2 **Variables** (ถ้าใส่ไว้ใน Secrets แทนก็ใช้ได้ — workflow อ่านได้ทั้งสองที่): `COMMUNITY_ID` (จากขั้น 2.2), `LINE_TARGET` (= group ID ของกลุ่มทดสอบ — **ห้ามใส่ `broadcast`**), `HEALTH_EXPECTED_JOBS` (บน staging ที่ยังไม่เปิด Briefing ให้ใส่ `weather,scheduler,dispatch`)
 - [ ] 3.3 Actions → `jobs` → Run workflow → เลือก `weather` (dry_run ไม่มีผลกับ weather) → ต้องสำเร็จ และมีแถวใหม่ใน `weather_observations`
 - [ ] 3.4 Run workflow → `healthcheck` แบบ dry_run → ดูผลใน log
 - [ ] 3.5 **จนกว่าจะทำข้อ 3.1–3.2 ครบ** งานตามเวลาจะถูก "ข้าม" พร้อมคำเตือนสีเหลือง (ไม่ล้มรัว ๆ)
