@@ -9,7 +9,7 @@
 | เวอร์ชันโค้ด | 0.1.0 |
 | เวอร์ชัน PRD | 0.3 (Decision Baseline) |
 | เฟสปัจจุบัน | **Phase 1 (MVP) — แกนระบบ + Admin PWA vertical slice เสร็จ; ยังขาด staging/TTS/retention cleanup และการทดสอบบริการจริง** |
-| ความพร้อมภาพรวม Phase 1 | ประมาณ 90% (vertical slice ผ่านถึง LINE; เหลือการรันตามเวลา 3 วันและงานต่อเนื่อง) |
+| ความพร้อมภาพรวม Phase 1 | ประมาณ 92% (vertical slice ผ่านถึง LINE และผู้ใช้ยืนยันว่าได้รับข้อความ; เหลือการรันตามเวลา 3 วันและงานต่อเนื่อง) |
 | สุขภาพโค้ด | `npm run typecheck` ✅ · `npm test` ✅ 61/61 (ตรวจเมื่อ 2026-10-01) |
 | สภาพแวดล้อมจริง | 🟡 Supabase `jwspesomdtycnzjakeiv` ACTIVE_HEALTHY; weather และ tick เขียน job_runs สำเร็จ; ยังไม่ทดสอบ LINE จริง |
 | Blocker หลัก | ต้องเฝ้าดูระบบตามเวลา 3 วันติดต่อกันก่อนปิดเฟส 1 อย่างเป็นทางการ |
