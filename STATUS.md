@@ -5,14 +5,14 @@
 
 | รายการ | ค่า |
 |---|---|
-| อัปเดตล่าสุด | 2026-09-29 (สร้าง Admin PWA vertical slice + API contract และตรวจโหมดสาธิตครบ) |
+| อัปเดตล่าสุด | 2026-10-01 (ตรวจ staging/Supabase, GitHub Actions และบันทึกผลการทดสอบจริง) |
 | เวอร์ชันโค้ด | 0.1.0 |
 | เวอร์ชัน PRD | 0.3 (Decision Baseline) |
 | เฟสปัจจุบัน | **Phase 1 (MVP) — แกนระบบ + Admin PWA vertical slice เสร็จ; ยังขาด staging/TTS/retention cleanup และการทดสอบบริการจริง** |
-| ความพร้อมภาพรวม Phase 1 | ประมาณ 70% (แกนโค้ดและ PWA local demo เสร็จ; ขาด TTS, retention, staging และการตั้งค่าจริง) |
-| สุขภาพโค้ด | `npm run typecheck` ✅ · `npm test` ✅ 59/59 (ตรวจเมื่อ 2026-09-29) |
-| สภาพแวดล้อมจริง | ❓ ยังไม่ยืนยันว่ามี Supabase / LINE OA / GitHub Secrets ตั้งไว้แล้ว |
-| Blocker หลัก | **ไม่มีแล้วใน PRD ข้อ 17 #1/#2/#4/#8/#10**; ขั้นต่อไปคือ staging + vertical slice จริง |
+| ความพร้อมภาพรวม Phase 1 | ประมาณ 75% (schema/seed staging ทำแล้ว; ยังขาดการยืนยันตัวแปร GitHub, Auth/LINE จริง, TTS และ retention cleanup) |
+| สุขภาพโค้ด | `npm run typecheck` ✅ · `npm test` ✅ 59/59 (ตรวจเมื่อ 2026-10-01) |
+| สภาพแวดล้อมจริง | 🟡 Supabase โปรเจกต์ `jwspesomdtycnzjakeiv` ACTIVE_HEALTHY, schema/seed/RLS แล้ว; GitHub Actions ยังหยุดที่ `COMMUNITY_ID` |
+| Blocker หลัก | GitHub Actions ยังไม่เห็น Repository Variable `COMMUNITY_ID`; ต้องตรวจ `LINE_TARGET` และทดสอบ healthcheck/vertical slice ต่อ |
 
 ---
 
@@ -20,12 +20,12 @@
 
 | # | รายการ | สถานะ | หลักฐาน / หมายเหตุ |
 |---|---|---|---|
-| 1 | Supabase schema แกน + RLS | ✅ เขียนแล้ว · ⏳ ยังไม่ยืนยันว่ารันบนโปรเจกต์จริง | `supabase/migrations/0001_core.sql`, `seed.sql` |
+| 1 | Supabase schema แกน + RLS | ✅ รันแล้วบนโปรเจกต์ที่เข้าถึงได้ | โปรเจกต์ `jwspesomdtycnzjakeiv`; ตรวจพบ 14 ตารางและ RLS เปิดครบ; region `ap-south-1` ไม่ใช่ Singapore |
 | 2 | Ingestion: อากาศ (Open-Meteo) + ประกาศกรอกเอง | ✅ โค้ดเสร็จ · ⏳ ยังไม่ทดสอบกับบริการจริง | `src/adapters/openMeteo.ts`, `src/jobs/weatherFetch.ts`, `cli announce` |
 | 3 | Lifecycle + dedup + change detection + freshness | ✅ เสร็จและมีเทสต์ | `src/engine/*`, `engine.test.ts`, `scenario.test.ts` |
 | 4 | Daily Briefing "ไม่ส่งถ้าไม่มีอะไรใหม่" | ✅ เสร็จและมีเทสต์ | `src/engine/briefing.ts`, `src/services/briefing.ts` |
 | 5 | เสียง TTS (น้องจุ่นจ้าน) + LINE Text/Audio | 🟡 LINE Text ✅ · TTS/Audio ❌ | ตาราง `audio_assets` เตรียมไว้ ยังไม่มีโค้ดสร้างเสียง |
-| 6 | Admin PWA ขั้นต่ำ | 🟡 vertical slice เสร็จ · ⏳ ยังไม่ทดสอบ Supabase จริง | `admin/`, `src/admin/server.ts`, `docs/04-architecture.md`, `docs/05-api-contract.md` |
+| 6 | Admin PWA ขั้นต่ำ | 🟡 vertical slice เสร็จ · ⏳ ยังไม่ทดสอบ Auth/role บน Supabase จริง | `admin/`, `src/admin/server.ts`, `docs/04-architecture.md`, `docs/05-api-contract.md`; `user_roles` ยังว่าง |
 | 7 | Audit log งานสำคัญ | ✅ เสร็จ | ตาราง append-only (trigger) + บันทึกที่ ingest/publish/resolve/scheduler/briefing |
 
 สัญลักษณ์: ✅ เสร็จ · 🟡 ทำบางส่วน · ⏳ รอยืนยัน/รอปัจจัยภายนอก · ❌ ยังไม่ทำ
@@ -44,14 +44,14 @@
 | 8 | Audio / TTS | ❌ ขั้นถัดไป |
 | 9 | Daily Briefing | ✅ |
 | 10 | Notification / Delivery | ✅ LINE Text (idempotent, retry ≤ 3, quiet hours, คุมโควต้า: ≥95% ส่งเฉพาะ CRITICAL) |
-| 11 | User / Role | 🟡 schema + RLS + server API เสร็จ; รอทดสอบ Auth จริง |
+| 11 | User / Role | 🟡 schema + RLS + server API เสร็จ; ยังไม่มีผู้ใช้ทดสอบ/แถว `user_roles` |
 | 12 | Audit / System Jobs | ✅ `audit_logs`, `job_runs` |
 
 ## 3. งานอัตโนมัติ (PRD ข้อ 11)
 
 | Job | สถานะ | หมายเหตุ |
 |---|---|---|
-| `weather_fetch` | ✅ | workflow `jobs.yml` ทุก 3 ชม. |
+| `weather_fetch` | 🟡 workflow พร้อม แต่ทดสอบจริงยังไม่ผ่าน | รอบ `36803579260` หยุดที่ preflight เพราะไม่เห็น `COMMUNITY_ID`; ยังไม่มีแถว weather ใหม่จาก workflow |
 | `announcement_scheduler` | ✅ | รวมอยู่ใน job `tick` (ทุก 5 นาทีเป็น fallback; CRITICAL มี immediate path) |
 | `briefing_morning` | ✅ | 06:30 เวลาไทย (cron 23:30 UTC) |
 | `delivery_dispatch` | ✅ | รวมอยู่ใน `tick` |
@@ -64,14 +64,26 @@
 ## 4. ความไม่สอดคล้องที่ต้องรู้
 
 - **[แก้แล้ว 2026-09-29]** workflow `jobs` ตั้ง cron tick เป็นทุก 5 นาที แต่ `case` ยังเป็น 15 นาที → tick ไม่เคยทำงาน (รันแล้วขึ้น "สำเร็จ" เฉยๆ); ตอนนี้แก้แล้วและมีเทสต์ `src/workflow.test.ts` กันซ้ำ
-- **[แก้แล้ว]** งาน weather ตามเวลาล้มเหลวซ้ำ ๆ เพราะยังไม่ได้ตั้ง GitHub Secrets — ตอนนี้ `scripts/preflight.sh` จะข้ามพร้อมคำเตือนถ้ายังไม่ตั้งค่า และล้มพร้อมบอกชื่อค่าที่ขาดถ้าตั้งไม่ครบ (ดู `docs/OWNER-TODO.md` ขั้น 3)
+- **[ตรวจแล้ว 2026-10-01]** GitHub Actions รอบ `36802089355` และ `36803579260` ผ่านขั้น checkout/npm แต่ preflight รายงานขาด `COMMUNITY_ID`; จึงยังไม่เริ่มดึง Open-Meteo
 
 - PRD ระบุสถานะ "ยังไม่พร้อมเขียนโค้ด (ดูข้อ 18)" แต่โค้ด Phase 1 ถูกเขียนไปแล้ว → **Definition of Ready (PRD ข้อ 18) ยังไม่ผ่านครบ** ค่า threshold ต่าง ๆ ในโค้ดยังเป็น `[สมมติฐาน]` (อยู่ที่ `freshness.ts`, `priority.ts`, `weather.ts`, `briefing.ts`)
 - PRD ข้อ 11 กำหนด scheduler ทุก 5 นาที แต่ workflow ตั้ง 15 นาที (ยอมรับได้เพราะ CRITICAL ส่งทันทีตอน publish — ยืนยันกับเจ้าของ)
 - `docs/03-data-model.md` และ `docs/06–08` ยังไม่ถูกเขียน; `docs/04-architecture.md` และ `docs/05-api-contract.md` ถูกเพิ่มแล้วสำหรับ PWA vertical slice
-- ไม่มี dependency/secret scanning ใน repo (SEC-008)
+- Secret scanning และ push protection ของ GitHub เปิดอยู่แล้ว; Dependabot alerts ยังปิด และ `main` ยังไม่ถูกป้องกัน
 
-## 5. ผลการตัดสินใจ PRD ข้อ 17
+## 5.1 บันทึกการดำเนินการ staging (2026-10-01)
+
+- อ่านคู่มือแนบและเอกสาร/โค้ดในรีโปครบก่อนลงมือ
+- Clone รีโป `aodxx/Lampai-Communit` และตรวจ workflow, migration, seed, scripts และเอกสารเจ้าของระบบ
+- รัน `npm ci`, `npm run typecheck` และ `npm test`: ผ่าน 59/59
+- ตรวจ Supabase: พบโปรเจกต์เดียว `jwspesomdtycnzjakeiv`, สถานะ `ACTIVE_HEALTHY`, region `ap-south-1`
+- Apply schema หลักและ seed สำเร็จ; ตรวจพบ community 1 แถว, source 1 แถว, ตารางทั้งหมด 14 ตาราง และ RLS เปิดครบ
+- ไม่ได้สร้างผู้ใช้ Auth/admin เนื่องจากยังไม่มีอีเมลผู้ใช้ที่เจ้าของยืนยัน; `user_roles` ยังมี 0 แถว
+- ตรวจ GitHub security: secret scanning/push protection เปิด; branch protection ไม่มี; Dependabot alerts ปิด
+- ตรวจ workflow run ก่อนและหลังผู้ใช้แจ้งว่าตั้งค่า: รอบล่าสุด `36803579260` ล้มที่ preflight ด้วย `COMMUNITY_ID` ไม่ถูกส่งเข้า workflow
+- ไม่บันทึกค่า secret หรือ token ลงไฟล์/commit
+
+## 6. ผลการตัดสินใจ PRD ข้อ 17
 
 **ปิด blocker ขั้น 2 แล้ว (2026-09-29)**
 
@@ -81,7 +93,7 @@
 - #8 CRITICAL ส่งทันทีใน execution path; GitHub Actions 5 นาทีเป็น fallback
 - #10 retention policy ถูกล็อกใน `src/engine/retention.ts`
 - #3, #6, #7, #9 ไม่ใช่ blocker ของแกน Phase 1 (รายละเอียดที่เหลือดู PRD ข้อ 17)
-## 6. ความเสี่ยงที่กำลังเปิดอยู่
+## 7. ความเสี่ยงที่กำลังเปิดอยู่
 
 | ความเสี่ยง | สถานะ |
 |---|---|
@@ -89,7 +101,7 @@
 | R5 / SEC-007 secrets หลุดในแชต | ⚠️ **เคยมีการวางโทเคน GitHub ในแชต — ต้อง revoke แล้วสร้างใหม่ (ทำก่อนปิดงานแรก)** |
 | R9 ขอบเขตบวม | ควบคุมด้วย PRD ข้อ 5 |
 
-## 7. งานถัดไปที่แนะนำ (เรียงลำดับ)
+## 8. งานถัดไปที่แนะนำ (เรียงลำดับ)
 
 1. ตั้ง Secret `ADMIN_LINE_TARGET` แล้วทดสอบ healthcheck บน staging
 2. ตั้ง Supabase (staging) + LINE OA/กลุ่มทดสอบ + Secrets → รัน workflow `jobs` แบบ dry-run
@@ -99,7 +111,7 @@
 6. TTS น้องจุ่นจ้าน + ส่ง LINE Audio (ภาษาไทยมาตรฐานเป็น baseline)
 7. เขียน docs/03 และ docs/06–08 ให้ตรงกับ schema/โค้ดจริง
 
-## 8. วิธีอัปเดตไฟล์นี้
+## 9. วิธีอัปเดตไฟล์นี้
 
 1. เปลี่ยนสถานะในตารางที่เกี่ยวข้อง (✅/🟡/⏳/❌) พร้อมแก้ "อัปเดตล่าสุด" และ "ความพร้อมภาพรวม"
 2. รัน `npm run typecheck && npm test` แล้วอัปเดตบรรทัด "สุขภาพโค้ด"

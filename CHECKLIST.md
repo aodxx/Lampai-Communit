@@ -9,9 +9,9 @@
 
 ## ขั้น 0 — เตรียมเครื่องและทำความเข้าใจ (ทุกคนที่เข้าใหม่)
 
-- [ ] ติดตั้ง Node.js ≥ 22.18 (ดู `engines` ใน `package.json`)
-- [ ] `git clone` แล้ว `npm ci`
-- [ ] `npm run typecheck && npm test` ต้องผ่านทั้งหมด (ตอนนี้ 57 เทสต์)
+- [x] ติดตั้ง Node.js ≥ 22.18 (ดู `engines` ใน `package.json`)
+- [x] `git clone` แล้ว `npm ci`
+- [x] `npm run typecheck && npm test` ผ่านทั้งหมด (59/59 เทสต์ เมื่อ 2026-10-01)
 - [ ] อ่าน `README.md` → `docs/02-domain-model.md` → PRD ข้อ 1, 5, 6, 9, 21
 - [ ] จำหลักคิดสูงสุด: **ถ้าไม่มีอะไรใหม่ ระบบไม่พูดซ้ำ** และข้อความต้องมาจากแม่แบบ + ข้อมูลจริง ห้ามให้ LLM แต่งข้อเท็จจริง
 - [ ] ตั้งกติกาทีม: ทำงานผ่าน branch + PR, CI (`ci.yml`) ต้องเขียว, ห้ามใส่ secret ในโค้ด/แชต/issue
@@ -23,7 +23,7 @@
 ## ขั้น 1 — ปิดความปลอดภัยที่ค้างอยู่ (ทำก่อนเสมอ)
 
 - [ ×] 👤 **Revoke โทเคน GitHub ที่เคยถูกวางในแชต** แล้วสร้างใหม่แบบ fine-grained จำกัดเฉพาะรีโปนี้ (SEC-007, R5)
-- [ ] ⚙️ เปิด GitHub secret scanning + Dependabot ใน repo (SEC-008)
+- [ ] ⚙️ เปิด GitHub secret scanning + Dependabot ใน repo (SEC-008) — secret scanning/push protection เปิดแล้ว แต่ Dependabot alerts ยังปิด
 - [ ] ⚙️ ตั้ง branch protection บน `main` (ต้องผ่าน CI + ต้องมี review)
 - [ ] ตรวจว่า `.env` ไม่ถูก commit (ตอนนี้ `.gitignore` กันไว้แล้ว) และ `git log -p | grep -iE "key|token|secret"` ไม่พบค่าจริง
 - [ ] วางแผน rotate: Supabase service-role key, LINE channel access token (เมื่อสร้างแล้ว)
@@ -48,15 +48,15 @@
 **เกณฑ์ผ่าน:** PRD ข้อ 18 ข้อแรก (#1, #2, #4, #8, #10) มีคำตอบแล้ว และไม่เหลือ blocker ของขั้น 2
 ## ขั้น 3 — ตั้งค่าสภาพแวดล้อมจริง (Staging ก่อน)
 
-- [ ] ⚙️ สร้างโปรเจกต์ Supabase **staging** (แยกจาก production — NFR-012)
-- [ ] ⚙️ รัน `supabase/migrations/0001_core.sql` แล้ว `supabase/seed.sql`
-- [ ] ⚙️ ตรวจว่า RLS เปิดทุกตาราง และ `audit_logs` แก้/ลบไม่ได้ (ทดสอบ `update`/`delete` ต้อง error) (SEC-001, SEC-004)
+- [ ] ⚙️ สร้างโปรเจกต์ Supabase **staging** (แยกจาก production — NFR-012) — พบโปรเจกต์ `jwspesomdtycnzjakeiv` ACTIVE_HEALTHY แต่ชื่อ/region ไม่ตรง staging Singapore จึงยังไม่ยืนยันว่าเป็น staging แยก production
+- [x] ⚙️ รัน `supabase/migrations/0001_core.sql` แล้ว `supabase/seed.sql` — ตรวจพบ community 1 แถวและ source 1 แถว
+- [ ] ⚙️ ตรวจว่า RLS เปิดทุกตาราง และ `audit_logs` แก้/ลบไม่ได้ (ทดสอบ `update`/`delete` ต้อง error) (SEC-001, SEC-004) — ยืนยันแล้วว่า RLS เปิดครบ 14 ตาราง; ยังไม่ได้ทดสอบ update/delete trigger จริง
 - [ ] ⚙️ สร้าง LINE Official Account + **กลุ่ม/บัญชีทดสอบ** แยกจากของจริง
 - [ ] ⚙️ ตรวจโควต้าและเงื่อนไขแผนของ LINE / Supabase / (TTS ที่จะเลือก) (PRD ข้อ 18)
-- [ ] ⚙️ ตั้ง GitHub Secrets: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `LINE_CHANNEL_ACCESS_TOKEN`
-- [ ] ⚙️ ตั้ง GitHub Variables: `COMMUNITY_ID`, `LINE_TARGET` (และ Secret `ADMIN_LINE_TARGET` สำหรับ healthcheck)
+- [ ] ⚙️ ตั้ง GitHub Secrets: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `LINE_CHANNEL_ACCESS_TOKEN` — workflow weather ไม่ฟ้องค่าเหล่านี้แล้ว แต่ยังตรวจรายการ secret โดยตรงไม่ได้
+- [ ] ⚙️ ตั้ง GitHub Variables: `COMMUNITY_ID`, `LINE_TARGET` (และ Secret `ADMIN_LINE_TARGET` สำหรับ healthcheck) — รอบ `36803579260` ยังฟ้องขาด `COMMUNITY_ID`; ต้องยืนยันว่าเป็น Repository variable ไม่ใช่ Secret/Environment variable
 - [ ] ⚙️ คัดลอก `.env.example` → `.env` (เครื่องนักพัฒนา) กรอกค่า staging
-- [ ] ⚙️ เปิด backup ของ Supabase ตามแผนที่ใช้ (NFR-008)
+- [ ] ⚙️ เปิด backup ของ Supabase ตามแผนที่ใช้ (NFR-008) — ยังไม่ได้ตรวจ/ตั้งค่า
 
 **เกณฑ์ผ่าน:** `node --env-file=.env src/cli.ts job weather` รันสำเร็จและมีแถวใน `weather_observations` + `job_runs`
 
