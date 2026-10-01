@@ -114,7 +114,7 @@ export class SupabaseRepo implements Repo {
   async listDeliveries(communityId: string, limit = 50) {
     const r = await this.db
       .from('deliveries')
-      .select('id, community_id, kind, channel, audience, announcement_id, update_id, briefing_id, priority, data_level, status, attempt_count, last_error, sent_at, created_at, idempotency_key')
+      .select('id, community_id, kind, channel, audience, announcement_id, update_id, briefing_id, priority, data_level, status, attempt_count, last_error, next_attempt_at, sent_at, created_at, idempotency_key')
       .eq('community_id', communityId)
       .order('created_at', { ascending: false })
       .limit(limit);

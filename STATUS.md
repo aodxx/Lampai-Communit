@@ -5,14 +5,14 @@
 
 | รายการ | ค่า |
 |---|---|
-| อัปเดตล่าสุด | 2026-10-01 (เริ่ม Roadmap เฟส 1: tick ผ่าน และเพิ่ม startup grace period ให้ healthcheck) |
+| อัปเดตล่าสุด | 2026-10-01 (เริ่มเฟส 2: เพิ่ม delivery exponential backoff และตรวจ RLS) |
 | เวอร์ชันโค้ด | 0.1.0 |
 | เวอร์ชัน PRD | 0.3 (Decision Baseline) |
-| เฟสปัจจุบัน | **Phase 1 (MVP) — แกนระบบ + Admin PWA vertical slice เสร็จ; ยังขาด staging/TTS/retention cleanup และการทดสอบบริการจริง** |
-| ความพร้อมภาพรวม Phase 1 | ประมาณ 92% (vertical slice ผ่านถึง LINE และผู้ใช้ยืนยันว่าได้รับข้อความ; เหลือการรันตามเวลา 3 วันและงานต่อเนื่อง) |
+| เฟสปัจจุบัน | **Phase 2 (Reliability & Safety) — เริ่มดำเนินการหลังผู้ใช้ยืนยันให้ข้ามช่วงเฝ้าระวัง** |
+| ความพร้อมภาพรวม Phase 2 | ประมาณ 35% (retry/idempotency/backoff, RLS และ CI มีแล้ว; ยังเหลือ alert จริง, backup/restore, quota review และ pilot) |
 | สุขภาพโค้ด | `npm run typecheck` ✅ · `npm test` ✅ 61/61 (ตรวจเมื่อ 2026-10-01) |
-| สภาพแวดล้อมจริง | 🟡 Supabase `jwspesomdtycnzjakeiv` ACTIVE_HEALTHY; weather และ tick เขียน job_runs สำเร็จ; ยังไม่ทดสอบ LINE จริง |
-| Blocker หลัก | ต้องเฝ้าดูระบบตามเวลา 3 วันติดต่อกันก่อนปิดเฟส 1 อย่างเป็นทางการ |
+| สภาพแวดล้อมจริง | 🟡 Supabase `jwspesomdtycnzjakeiv` ACTIVE_HEALTHY; migration `delivery_backoff` applied; RLS เปิดครบ 14 ตาราง |
+| Blocker หลัก | ต้องทดสอบ failure alert กับ `ADMIN_LINE_TARGET`, ตรวจ backup/restore และกำหนด pilot ก่อนปิดเฟส 2 |
 
 ---
 
@@ -54,7 +54,7 @@
 | `weather_fetch` | ✅ | workflow run `36818882083` ผ่านและบันทึก `weather_observations` |
 | `announcement_scheduler` | ✅ | tick run `36866884343`; Supabase `job_runs.status=ok` (ทุก 5 นาทีเป็น fallback; CRITICAL มี immediate path) |
 | `briefing_morning` | ✅ | 06:30 เวลาไทย (cron 23:30 UTC) |
-| `delivery_dispatch` | ✅ | tick run `36866884343`; `job_runs.status=ok`, ยังส่ง 0 ข้อความเพราะคิวว่าง |
+| `delivery_dispatch` | ✅ | idempotency + retry 3 ครั้ง + exponential backoff 1/2 นาที; migration `0002_delivery_backoff.sql` applied |
 | `tts_generate` | ❌ | |
 | `healthcheck` (NFR-003) | ✅ | run `36867386900` หลัง deploy grace period ผ่าน; `issues=0`, `newIssues=0` |
 | `retention_cleanup` | ❌ | รอ PRD #10 |
@@ -85,6 +85,11 @@
 
 - เริ่ม Roadmap เฟส 1: tick run `36866884343` สำเร็จ; `scheduler` และ `dispatch` มี `status=ok`
 - เพิ่ม `STARTUP_GRACE_HOURS=2` ใน health engine และเพิ่ม unit tests รวมเป็น 61 tests
+- เริ่มเฟส 2 ตามคำสั่งผู้ใช้โดยไม่รอเฝ้าระวัง 3 วัน
+- เพิ่ม `deliveries.next_attempt_at` และ migration `0002_delivery_backoff.sql` บน Supabase สำเร็จ
+- เพิ่ม exponential backoff สำหรับ retry: 1 นาทีหลังครั้งที่ 1, 2 นาทีหลังครั้งที่ 2, ล้มถาวรหลังครั้งที่ 3
+- ตรวจ Supabase แล้ว: RLS เปิดครบ 14 ตาราง และมี SELECT policy ตามบทบาท; audit_logs มี trigger append-only
+- เพิ่ม `docs/08-delivery.md` และยืนยัน CI มี typecheck + test สำหรับ pull request
 
 ## 6. ผลการตัดสินใจ PRD ข้อ 17
 

@@ -19,7 +19,7 @@ class Sender1 implements Sender {
 }
 const queued = (priority: Priority, payload: string): Delivery => ({
   id: crypto.randomUUID(), communityId: C, kind: 'announcement', channel: 'line_text', audience: 'community', announcementId: null, updateId: null, briefingId: null,
-  priority, dataLevel: 'public', payload, idempotencyKey: `k:${crypto.randomUUID()}`, status: 'queued', attemptCount: 0, lastError: null, sentAt: null, createdAt: NOON.toISOString(),
+  priority, dataLevel: 'public', payload, idempotencyKey: `k:${crypto.randomUUID()}`, status: 'queued', attemptCount: 0, lastError: null, nextAttemptAt: null, sentAt: null, createdAt: NOON.toISOString(),
 });
 const seed = (repo: MemoryRepo) => {
   repo.deliveries.push(queued('critical', 'ด่วน'), queued('important', 'สำคัญ'), queued('normal', 'ทั่วไป'));

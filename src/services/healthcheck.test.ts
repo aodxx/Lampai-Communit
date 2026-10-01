@@ -39,7 +39,7 @@ async function failJob(repo: MemoryRepo, job: string, now: Date, msg: string) {
 const queuedCritical = (createdAt: Date): Delivery => ({
   id: crypto.randomUUID(), communityId: C, kind: 'announcement', channel: 'line_text', audience: 'community', announcementId: null, updateId: null, briefingId: null,
   priority: 'critical', dataLevel: 'public', payload: 'ข้อมูลประกาศ ห้ามหลุดไปในข้อความผู้ดูแล', idempotencyKey: `k:${crypto.randomUUID()}`,
-  status: 'queued', attemptCount: 0, lastError: null, sentAt: null, createdAt: createdAt.toISOString(),
+  status: 'queued', attemptCount: 0, lastError: null, nextAttemptAt: null, sentAt: null, createdAt: createdAt.toISOString(),
 });
 
 test('ระบบปกติ: ไม่ส่งอะไรถึงผู้ดูแล (ไม่พูดถ้าไม่มีอะไรผิด)', async () => {

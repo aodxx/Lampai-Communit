@@ -108,7 +108,7 @@ test('เรื่อง CRITICAL ส่งทันทีแม้กลาง�
   assert.equal((await dispatch(repo, sender, C, ctx.now)).sent, 1);
 
   // เรื่องธรรมดาที่ถูกคิวไว้ต้องไม่ถูกส่งตอนกลางคืน
-  repo.deliveries.push({ ...repo.deliveries[0]!, id: crypto.randomUUID(), idempotencyKey: 'x', status: 'queued', priority: 'normal', sentAt: null });
+  repo.deliveries.push({ ...repo.deliveries[0]!, id: crypto.randomUUID(), idempotencyKey: 'x', status: 'queued', priority: 'normal', nextAttemptAt: null, sentAt: null });
   const s = await dispatch(repo, sender, C, ctx.now);
   assert.equal(s.heldQuietHours, 1);
   assert.equal(s.sent, 0);
@@ -136,13 +136,14 @@ test('ส่งล้มเหลว: retry ได้จำกัดครั้
   const ctx = ctxAt(repo, '2026-09-29T10:00:00+07:00');
   repo.deliveries.push({
     id: crypto.randomUUID(), communityId: C, kind: 'briefing', channel: 'line_text', audience: 'community', announcementId: null, updateId: null, briefingId: null,
-    priority: 'normal', dataLevel: 'public', payload: 'ทดสอบ', idempotencyKey: 'k', status: 'queued', attemptCount: 0, lastError: null, sentAt: null, createdAt: ctx.now.toISOString(),
+    priority: 'normal', dataLevel: 'public', payload: 'ทดสอบ', idempotencyKey: 'k', status: 'queued', attemptCount: 0, lastError: null, nextAttemptAt: null, sentAt: null, createdAt: ctx.now.toISOString(),
   });
   const sender = new FakeSender();
   sender.fail = 5;
   await dispatch(repo, sender, C, ctx.now);
-  await dispatch(repo, sender, C, ctx.now);
-  const last = await dispatch(repo, sender, C, ctx.now);
+  assert.equal(repo.deliveries[0]!.nextAttemptAt, new Date(ctx.now.getTime() + 60_000).toISOString());
+  await dispatch(repo, sender, C, new Date(ctx.now.getTime() + 60_000));
+  const last = await dispatch(repo, sender, C, new Date(ctx.now.getTime() + 3 * 60_000));
   assert.equal(last.failed, 1);
   assert.equal(repo.deliveries[0]!.status, 'failed');
   assert.equal(repo.attempts.length, 3);

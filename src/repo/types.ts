@@ -20,6 +20,7 @@ export interface Delivery {
   status: DeliveryStatus;
   attemptCount: number;
   lastError: string | null;
+  nextAttemptAt: string | null;
   sentAt: string | null;
   createdAt: string;
 }
@@ -97,7 +98,7 @@ export interface Repo {
   /** รายการ delivery สำหรับหน้าผู้ดูแล (เรียงใหม่ไปเก่าและจำกัดจำนวน) */
   listDeliveries(communityId: string, limit?: number): Promise<Delivery[]>;
   listDispatchable(communityId: string): Promise<Delivery[]>;
-  recordAttempt(deliveryId: string, attempt: { ok: boolean; httpStatus: number | null; error: string | null }, patch: Partial<Pick<Delivery, 'status' | 'attemptCount' | 'lastError' | 'sentAt'>>): Promise<void>;
+  recordAttempt(deliveryId: string, attempt: { ok: boolean; httpStatus: number | null; error: string | null }, patch: Partial<Pick<Delivery, 'status' | 'attemptCount' | 'lastError' | 'nextAttemptAt' | 'sentAt'>>): Promise<void>;
 
   audit(e: AuditEntry): Promise<void>;
   startJob(communityId: string, job: string, at: string): Promise<JobRun>;

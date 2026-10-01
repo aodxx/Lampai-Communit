@@ -41,7 +41,7 @@ export async function runBriefing(ctx: Ctx, opts: { slot: string; dryRun?: boole
       id: crypto.randomUUID(), communityId, kind: 'briefing', channel: 'line_text', audience: 'community',
       announcementId: null, updateId: null, briefingId: briefing.id, priority: 'normal', dataLevel: 'public',
       payload: result.text, idempotencyKey: `brf:${briefing.id}:line_text:community`, status: 'queued',
-      attemptCount: 0, lastError: null, sentAt: null, createdAt: now.toISOString(),
+      attemptCount: 0, lastError: null, nextAttemptAt: null, sentAt: null, createdAt: now.toISOString(),
     };
     queued = await repo.insertDeliveryIfAbsent(d);
     await repo.markAnnounced(result.includedUpdateIds, now.toISOString());

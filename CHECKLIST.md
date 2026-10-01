@@ -134,7 +134,7 @@
 - [ ] เขียน `docs/03-data-model.md` ให้ตรงกับ schema จริง (PK/FK/index/RLS/retention)
 - [ ] เขียน `docs/06-security-roles.md` (ตารางสิทธิ์เต็ม, SENSITIVE, PDPA/SEC-006)
 - [ ] เขียน `docs/07-jobs.md` (runbook แต่ละ job: ทำอะไร, ตรวจอย่างไร, พังแล้วแก้อย่างไร)
-- [ ] เขียน `docs/08-delivery.md` (LINE, โควต้า, quiet hours, retry)
+- [x] เขียน `docs/08-delivery.md` (LINE, โควต้า, quiet hours, retry)
 - [ ] ทดสอบกู้คืนข้อมูลจาก backup อย่างน้อย 1 ครั้ง (NFR-008)
 - [ ] ทดสอบ export ข้อมูล CSV/JSON (NFR-009)
 - [ ] อัปเดตสถานะและ Definition of Ready ใน PRD (ข้อ 18) + ประวัติเอกสาร (ภาคผนวก C)

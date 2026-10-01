@@ -76,9 +76,9 @@
 
 ### งาน 2.1 ความทนทานของการส่ง
 
-- [ ] Retry แบบจำกัดรอบ (เช่น 3 ครั้ง, exponential backoff)
-- [ ] Idempotency key กันส่งข้อความซ้ำเมื่อ job รันซ้ำ
-- [ ] แยกสถานะ: รอส่ง / ส่งแล้ว / ล้มเหลวถาวร
+- [x] Retry แบบจำกัดรอบ 3 ครั้ง พร้อม exponential backoff 1/2 นาที
+- [x] Idempotency key กันส่งข้อความซ้ำเมื่อ job รันซ้ำ และใช้ `X-Line-Retry-Key`
+- [x] แยกสถานะ: รอส่ง / ส่งแล้ว / ล้มเหลวถาวร
 - **ผ่านเมื่อ:** จำลอง LINE ล่ม/รัน job ซ้ำแล้วไม่มีข้อความหายหรือซ้ำ
 
 ### งาน 2.2 แจ้งเตือนผู้ดูแล
@@ -89,8 +89,8 @@
 
 ### งาน 2.3 ความปลอดภัย
 
-- [ ] เปิดและตรวจ Row Level Security ทุกตารางที่เก็บข้อมูลผู้ใช้
-- [ ] ใช้ service key เฉพาะฝั่ง workflow, ไม่เปิดเผยฝั่ง client
+- [x] เปิดและตรวจ Row Level Security ครบ 14 ตารางบน Supabase
+- [x] ใช้ service key เฉพาะฝั่ง workflow/server; ไม่พบการพิมพ์ secret ในโค้ดหรือล็อก
 - [ ] หมุน (rotate) คีย์ที่เคยใช้ทดสอบ
 - [ ] ตรวจว่า secrets ไม่หลุดในล็อก
 - **ผ่านเมื่อ:** ทดสอบเข้าถึงด้วยสิทธิ์ผู้ใช้ทั่วไปแล้วอ่านข้อมูลคนอื่นไม่ได้
@@ -102,8 +102,8 @@
 
 ### งาน 2.5 ทดสอบอัตโนมัติ
 
-- [ ] Unit test ตรรกะ scheduler และ dispatch
-- [ ] Workflow ตรวจ PR (lint + test)
+- [x] Unit test ตรรกะ scheduler และ dispatch รวม backoff/retry
+- [x] Workflow ตรวจ PR (typecheck + test) ใน `.github/workflows/ci.yml`
 
 ### งาน 2.6 สำรองและกู้คืน
 
