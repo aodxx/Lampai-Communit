@@ -9,10 +9,10 @@
 | เวอร์ชันโค้ด | 0.1.0 |
 | เวอร์ชัน PRD | 0.3 (Decision Baseline) |
 | เฟสปัจจุบัน | **Phase 1 (MVP) — แกนระบบ + Admin PWA vertical slice เสร็จ; ยังขาด staging/TTS/retention cleanup และการทดสอบบริการจริง** |
-| ความพร้อมภาพรวม Phase 1 | ประมาณ 82% (weather/tick ผ่าน, schema/seed ทำแล้ว; ยังขาด healthcheck หลัง deploy, LINE จริง และเกณฑ์ 3 วัน) |
+| ความพร้อมภาพรวม Phase 1 | ประมาณ 90% (vertical slice ผ่านถึง LINE; เหลือการรันตามเวลา 3 วันและงานต่อเนื่อง) |
 | สุขภาพโค้ด | `npm run typecheck` ✅ · `npm test` ✅ 61/61 (ตรวจเมื่อ 2026-10-01) |
 | สภาพแวดล้อมจริง | 🟡 Supabase `jwspesomdtycnzjakeiv` ACTIVE_HEALTHY; weather และ tick เขียน job_runs สำเร็จ; ยังไม่ทดสอบ LINE จริง |
-| Blocker หลัก | ต้องรัน healthcheck หลัง deploy โค้ด grace period และทดสอบส่ง LINE จริงในกลุ่มทดสอบ |
+| Blocker หลัก | ต้องเฝ้าดูระบบตามเวลา 3 วันติดต่อกันก่อนปิดเฟส 1 อย่างเป็นทางการ |
 
 ---
 
@@ -21,7 +21,7 @@
 | # | รายการ | สถานะ | หลักฐาน / หมายเหตุ |
 |---|---|---|---|
 | 1 | Supabase schema แกน + RLS | ✅ รันแล้วบนโปรเจกต์ที่เข้าถึงได้ | โปรเจกต์ `jwspesomdtycnzjakeiv`; ตรวจพบ 14 ตารางและ RLS เปิดครบ; region `ap-south-1` ไม่ใช่ Singapore |
-| 2 | Ingestion: อากาศ (Open-Meteo) + ประกาศกรอกเอง | 🟡 weather workflow ผ่าน; announce ยังไม่ทดสอบ end-to-end | `src/adapters/openMeteo.ts`, `src/jobs/weatherFetch.ts`, `cli announce` |
+| 2 | Ingestion: อากาศ (Open-Meteo) + ประกาศกรอกเอง | 🟡 weather และ test delivery ผ่าน; CLI announce ยังไม่ทดสอบ end-to-end | `src/adapters/openMeteo.ts`, `src/jobs/weatherFetch.ts`, `cli announce` |
 | 3 | Lifecycle + dedup + change detection + freshness | ✅ เสร็จและมีเทสต์ | `src/engine/*`, `engine.test.ts`, `scenario.test.ts` |
 | 4 | Daily Briefing "ไม่ส่งถ้าไม่มีอะไรใหม่" | ✅ เสร็จและมีเทสต์ | `src/engine/briefing.ts`, `src/services/briefing.ts` |
 | 5 | เสียง TTS (น้องจุ่นจ้าน) + LINE Text/Audio | 🟡 LINE Text ✅ · TTS/Audio ❌ | ตาราง `audio_assets` เตรียมไว้ ยังไม่มีโค้ดสร้างเสียง |
@@ -56,7 +56,7 @@
 | `briefing_morning` | ✅ | 06:30 เวลาไทย (cron 23:30 UTC) |
 | `delivery_dispatch` | ✅ | tick run `36866884343`; `job_runs.status=ok`, ยังส่ง 0 ข้อความเพราะคิวว่าง |
 | `tts_generate` | ❌ | |
-| `healthcheck` (NFR-003) | 🟡 โค้ด+เทสต์เสร็จ; เพิ่ม startup grace 2 ชม. | run `36818984015` ผ่านแบบ dry-runก่อนเพิ่ม grace; ต้องรันซ้ำหลัง deploy เพื่อยืนยันไม่มี false alert |
+| `healthcheck` (NFR-003) | ✅ | run `36867386900` หลัง deploy grace period ผ่าน; `issues=0`, `newIssues=0` |
 | `retention_cleanup` | ❌ | รอ PRD #10 |
 | `briefing_evening` | ❌ | COULD |
 | `market_fetch`, `news_fetch` | ❌ | Phase 2 |

@@ -53,8 +53,8 @@
 - [ ] ⚙️ ตรวจว่า RLS เปิดทุกตาราง และ `audit_logs` แก้/ลบไม่ได้ (ทดสอบ `update`/`delete` ต้อง error) (SEC-001, SEC-004) — ยืนยันแล้วว่า RLS เปิดครบ 14 ตาราง; ยังไม่ได้ทดสอบ update/delete trigger จริง
 - [ ] ⚙️ สร้าง LINE Official Account + **กลุ่ม/บัญชีทดสอบ** แยกจากของจริง
 - [ ] ⚙️ ตรวจโควต้าและเงื่อนไขแผนของ LINE / Supabase / (TTS ที่จะเลือก) (PRD ข้อ 18)
-- [ ] ⚙️ ตั้ง GitHub Secrets: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `LINE_CHANNEL_ACCESS_TOKEN` — workflow weather ไม่ฟ้องค่าเหล่านี้แล้ว แต่ยังตรวจรายการ secret โดยตรงไม่ได้
-- [ ] ⚙️ ตั้ง GitHub Variables: `COMMUNITY_ID`, `LINE_TARGET` (และ Secret `ADMIN_LINE_TARGET` สำหรับ healthcheck) — รอบ `36803579260` ยังฟ้องขาด `COMMUNITY_ID`; ต้องยืนยันว่าเป็น Repository variable ไม่ใช่ Secret/Environment variable
+- [x] ⚙️ ตั้ง GitHub Secrets: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `LINE_CHANNEL_ACCESS_TOKEN` และ `ADMIN_LINE_TARGET` — workflow weather/tick/healthcheck ใช้งานได้
+- [x] ⚙️ ตั้ง GitHub Variables: `COMMUNITY_ID`, `LINE_TARGET` และ `HEALTH_EXPECTED_JOBS` — workflow รับค่าได้จริงหลัง commit `91d3897`
 - [ ] ⚙️ คัดลอก `.env.example` → `.env` (เครื่องนักพัฒนา) กรอกค่า staging
 - [ ] ⚙️ เปิด backup ของ Supabase ตามแผนที่ใช้ (NFR-008) — ยังไม่ได้ตรวจ/ตั้งค่า
 
@@ -66,7 +66,7 @@
 
 ลำดับตามคำแนะนำ PRD ข้อ 16: ประกาศกรอกเอง → lifecycle+dedup → deliveries → LINE Text
 
-- [ ] `announce examples/meeting.json` → ได้ draft (ตรวจแถวใน `announcements`, `announcement_updates`, `audit_logs`)
+- [ ] `announce examples/meeting.json` → ได้ draft (ตรวจแถวใน `announcements`, `announcement_updates`, `audit_logs`) — ยังไม่ได้ทดสอบผ่าน CLI; ใช้ fixture เฉพาะกิจสำหรับ LINE test แทน
 - [ ] รัน `announce` ซ้ำไฟล์เดิม → ต้องได้ `unchanged` ไม่เกิดการแจ้งซ้ำ
 - [ ] `publish <id>` แล้ว `job dispatch --dry-run` → เห็นคิวที่จะส่ง
 - [ ] `job dispatch` (จริง) → ข้อความเข้ากลุ่ม LINE ทดสอบ; รันซ้ำต้องไม่ส่งซ้ำ (NFR-002)
@@ -74,7 +74,7 @@
 - [ ] ทดสอบ quiet hours: ประกาศไม่ critical ต้องรอ ไม่ส่งกลางคืน
 - [ ] ทดสอบ `resolve <id> "..."` → แจ้งปิดเรื่องหนึ่งครั้ง
 - [ ] `job briefing --dry-run` วันที่ไม่มีอะไรใหม่ → ต้อง `skip_no_change`
-- [ ] รัน workflow `jobs` (manual, dry-run) ตามด้วยแบบจริงบน staging
+- [x] รัน workflow `jobs` (manual, dry-run) ตามด้วยแบบจริงบน staging — tick `36866884343` และ `36867516073`
 - [ ] ทดสอบล้มเหลวจงใจ (LINE token ผิด) → `job_runs` เป็น `error` และ workflow ล้ม (NFR-003)
 
 **เกณฑ์ผ่าน:** ครบทุกข้อ และบันทึกผลการทดสอบใน PR/issue
