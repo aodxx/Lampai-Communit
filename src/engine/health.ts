@@ -50,6 +50,7 @@ export const LOOKBACK_HOURS = 48; // ช่วงข้อมูลที่ใ�
 export const DEDUPE_HOURS = 24; // ช่วงที่ถือว่าปัญหาเดิมแจ้งไปแล้ว
 export const ERROR_WINDOW_HOURS = 24; // job ที่ล้มเหลวภายในช่วงนี้ถึงจะรายงาน
 export const STUCK_JOB_MIN = 30; // job ค้างสถานะ running นานเกินนี้ = ผิดปกติ
+export const STARTUP_GRACE_HOURS = 2; // หลังเริ่มมี job run ครั้งแรก ให้เวลาระบบตั้งตัวก่อนเตือน job ที่ยังไม่เคยสำเร็จ
 export const CRITICAL_QUEUED_MIN = 10; // NFR-004: critical ต้องถึง ≤ 5 นาที เตือนที่ 10
 export const OTHER_QUEUED_HOURS = 12; // quiet hours ยาว 9 ชม. (21:00–06:00)
 export const STALE_REALERT_HOURS = 6; // ปัญหา "job หยุดรัน" แจ้งซ้ำทุกกี่ชม. ถ้ายังไม่หาย
@@ -78,6 +79,9 @@ export function evaluateHealth(input: {
 
   // การรันแบบ dry-run (ชื่อลงท้าย :dry) ไม่นับเป็นการทำงานจริง
   const real = jobs.filter((j) => !j.job.endsWith(':dry'));
+  const realStarted = real.filter((j) => !j.job.startsWith('healthcheck')).map((j) => Date.parse(j.startedAt)).filter(Number.isFinite);
+  const startupGrace = realStarted.length > 0
+    && t - Math.min(...realStarted) < STARTUP_GRACE_HOURS * HOUR;
 
   // 1) job ล้มเหลวภายในช่วงที่กำหนด
   for (const j of real) {
@@ -99,6 +103,7 @@ export function evaluateHealth(input: {
     const okRuns = real.filter((j) => j.job === e.job && j.status === 'ok').map((j) => Date.parse(j.startedAt));
     const last = okRuns.length ? Math.max(...okRuns) : null;
     if (last === null || t - last > e.maxAgeMin * MIN) {
+      if (last === null && startupGrace) continue;
       const detail = last === null ? `ไม่พบการรันสำเร็จใน ${LOOKBACK_HOURS} ชม.ที่ผ่านมา` : `ไม่รันสำเร็จมา ${Math.floor((t - last) / MIN)} นาที (เกณฑ์ ${e.maxAgeMin} นาที)`;
       issues.push({ key: `job_stale:${e.job}`, severity: 'critical', message: `job "${e.job}" หยุดทำงาน: ${detail}` });
     }

@@ -5,14 +5,14 @@
 
 | รายการ | ค่า |
 |---|---|
-| อัปเดตล่าสุด | 2026-10-01 (ตรวจ staging/Supabase, GitHub Actions และบันทึกผลการทดสอบจริง) |
+| อัปเดตล่าสุด | 2026-10-01 (เริ่ม Roadmap เฟส 1: tick ผ่าน และเพิ่ม startup grace period ให้ healthcheck) |
 | เวอร์ชันโค้ด | 0.1.0 |
 | เวอร์ชัน PRD | 0.3 (Decision Baseline) |
 | เฟสปัจจุบัน | **Phase 1 (MVP) — แกนระบบ + Admin PWA vertical slice เสร็จ; ยังขาด staging/TTS/retention cleanup และการทดสอบบริการจริง** |
-| ความพร้อมภาพรวม Phase 1 | ประมาณ 75% (schema/seed staging ทำแล้ว; ยังขาดการยืนยันตัวแปร GitHub, Auth/LINE จริง, TTS และ retention cleanup) |
-| สุขภาพโค้ด | `npm run typecheck` ✅ · `npm test` ✅ 59/59 (ตรวจเมื่อ 2026-10-01) |
-| สภาพแวดล้อมจริง | 🟡 Supabase โปรเจกต์ `jwspesomdtycnzjakeiv` ACTIVE_HEALTHY, schema/seed/RLS แล้ว; GitHub Actions ยังหยุดที่ `COMMUNITY_ID` |
-| Blocker หลัก | GitHub Actions ยังไม่เห็น Repository Variable `COMMUNITY_ID`; ต้องตรวจ `LINE_TARGET` และทดสอบ healthcheck/vertical slice ต่อ |
+| ความพร้อมภาพรวม Phase 1 | ประมาณ 82% (weather/tick ผ่าน, schema/seed ทำแล้ว; ยังขาด healthcheck หลัง deploy, LINE จริง และเกณฑ์ 3 วัน) |
+| สุขภาพโค้ด | `npm run typecheck` ✅ · `npm test` ✅ 61/61 (ตรวจเมื่อ 2026-10-01) |
+| สภาพแวดล้อมจริง | 🟡 Supabase `jwspesomdtycnzjakeiv` ACTIVE_HEALTHY; weather และ tick เขียน job_runs สำเร็จ; ยังไม่ทดสอบ LINE จริง |
+| Blocker หลัก | ต้องรัน healthcheck หลัง deploy โค้ด grace period และทดสอบส่ง LINE จริงในกลุ่มทดสอบ |
 
 ---
 
@@ -21,7 +21,7 @@
 | # | รายการ | สถานะ | หลักฐาน / หมายเหตุ |
 |---|---|---|---|
 | 1 | Supabase schema แกน + RLS | ✅ รันแล้วบนโปรเจกต์ที่เข้าถึงได้ | โปรเจกต์ `jwspesomdtycnzjakeiv`; ตรวจพบ 14 ตารางและ RLS เปิดครบ; region `ap-south-1` ไม่ใช่ Singapore |
-| 2 | Ingestion: อากาศ (Open-Meteo) + ประกาศกรอกเอง | ✅ โค้ดเสร็จ · ⏳ ยังไม่ทดสอบกับบริการจริง | `src/adapters/openMeteo.ts`, `src/jobs/weatherFetch.ts`, `cli announce` |
+| 2 | Ingestion: อากาศ (Open-Meteo) + ประกาศกรอกเอง | 🟡 weather workflow ผ่าน; announce ยังไม่ทดสอบ end-to-end | `src/adapters/openMeteo.ts`, `src/jobs/weatherFetch.ts`, `cli announce` |
 | 3 | Lifecycle + dedup + change detection + freshness | ✅ เสร็จและมีเทสต์ | `src/engine/*`, `engine.test.ts`, `scenario.test.ts` |
 | 4 | Daily Briefing "ไม่ส่งถ้าไม่มีอะไรใหม่" | ✅ เสร็จและมีเทสต์ | `src/engine/briefing.ts`, `src/services/briefing.ts` |
 | 5 | เสียง TTS (น้องจุ่นจ้าน) + LINE Text/Audio | 🟡 LINE Text ✅ · TTS/Audio ❌ | ตาราง `audio_assets` เตรียมไว้ ยังไม่มีโค้ดสร้างเสียง |
@@ -51,12 +51,12 @@
 
 | Job | สถานะ | หมายเหตุ |
 |---|---|---|
-| `weather_fetch` | 🟡 workflow พร้อม แต่ทดสอบจริงยังไม่ผ่าน | รอบ `36803579260` หยุดที่ preflight เพราะไม่เห็น `COMMUNITY_ID`; ยังไม่มีแถว weather ใหม่จาก workflow |
-| `announcement_scheduler` | ✅ | รวมอยู่ใน job `tick` (ทุก 5 นาทีเป็น fallback; CRITICAL มี immediate path) |
+| `weather_fetch` | ✅ | workflow run `36818882083` ผ่านและบันทึก `weather_observations` |
+| `announcement_scheduler` | ✅ | tick run `36866884343`; Supabase `job_runs.status=ok` (ทุก 5 นาทีเป็น fallback; CRITICAL มี immediate path) |
 | `briefing_morning` | ✅ | 06:30 เวลาไทย (cron 23:30 UTC) |
-| `delivery_dispatch` | ✅ | รวมอยู่ใน `tick` |
+| `delivery_dispatch` | ✅ | tick run `36866884343`; `job_runs.status=ok`, ยังส่ง 0 ข้อความเพราะคิวว่าง |
 | `tts_generate` | ❌ | |
-| `healthcheck` (NFR-003) | 🟡 โค้ด+เทสต์เสร็จ ⏳ ยังไม่ทดสอบจริง | ทุกชั่วโมง (นาทีที่ 20) ตรวจ job ล้มเหลว/หยุดรัน/ค้าง + คิวส่งค้าง/ล้มเหลว → LINE ถึง `ADMIN_LINE_TARGET`; แจ้งครั้งเดียวต่อปัญหา, job หยุดรันเตือนซ้ำทุก 6 ชม. |
+| `healthcheck` (NFR-003) | 🟡 โค้ด+เทสต์เสร็จ; เพิ่ม startup grace 2 ชม. | run `36818984015` ผ่านแบบ dry-runก่อนเพิ่ม grace; ต้องรันซ้ำหลัง deploy เพื่อยืนยันไม่มี false alert |
 | `retention_cleanup` | ❌ | รอ PRD #10 |
 | `briefing_evening` | ❌ | COULD |
 | `market_fetch`, `news_fetch` | ❌ | Phase 2 |
@@ -82,6 +82,9 @@
 - ตรวจ GitHub security: secret scanning/push protection เปิด; branch protection ไม่มี; Dependabot alerts ปิด
 - ตรวจ workflow run ก่อนและหลังผู้ใช้แจ้งว่าตั้งค่า: รอบล่าสุด `36803579260` ล้มที่ preflight ด้วย `COMMUNITY_ID` ไม่ถูกส่งเข้า workflow
 - ไม่บันทึกค่า secret หรือ token ลงไฟล์/commit
+
+- เริ่ม Roadmap เฟส 1: tick run `36866884343` สำเร็จ; `scheduler` และ `dispatch` มี `status=ok`
+- เพิ่ม `STARTUP_GRACE_HOURS=2` ใน health engine และเพิ่ม unit tests รวมเป็น 61 tests
 
 ## 6. ผลการตัดสินใจ PRD ข้อ 17
 

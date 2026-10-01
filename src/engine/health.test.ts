@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { alertedAtFrom, evaluateHealth, formatHealthAlert, shouldAlert, type DeliveryHealthRow, type JobRunRecord } from './health.ts';
+import { alertedAtFrom, evaluateHealth, formatHealthAlert, shouldAlert, STARTUP_GRACE_HOURS, type DeliveryHealthRow, type JobRunRecord } from './health.ts';
 
 const NOW = new Date('2026-09-29T12:00:00+07:00');
 const ago = (min: number) => new Date(NOW.getTime() - min * 60_000).toISOString();
@@ -37,7 +37,7 @@ test('job หยุดรัน: ไม่มีการรันสำเร�
   assert.equal(a.length, 1);
   assert.match(a[0]!.message, /weather/);
 
-  const none = evaluateHealth({ now: NOW, jobs: [run('scheduler', 5), run('dispatch', 5), run('weather', 5)], deliveries: [] });
+  const none = evaluateHealth({ now: NOW, jobs: [run('scheduler', STARTUP_GRACE_HOURS * 60 + 5), run('dispatch', STARTUP_GRACE_HOURS * 60 + 5), run('weather', STARTUP_GRACE_HOURS * 60 + 5)], deliveries: [] });
   assert.ok(none.some((x) => /briefing/.test(x.message) && /ไม่พบ/.test(x.message)));
 });
 
@@ -49,9 +49,21 @@ test('รันล้มเหลวแต่ยังมีรันสำเ�
 });
 
 test('dry-run ไม่นับเป็นการทำงานจริง', () => {
-  const jobs = [run('weather:dry', 5), run('scheduler', 5), run('dispatch', 5), run('briefing', 60)];
+  const jobs = [run('weather:dry', 5), run('scheduler', STARTUP_GRACE_HOURS * 60 + 5), run('dispatch', STARTUP_GRACE_HOURS * 60 + 5), run('briefing', 60)];
   const issues = evaluateHealth({ now: NOW, jobs, deliveries: [] });
   assert.ok(issues.some((x) => x.key.startsWith('job_stale:weather')));
+});
+
+test('startup grace period: job ที่ยังไม่เคยสำเร็จไม่แจ้งเตือนในช่วงเริ่มระบบ', () => {
+  const jobs = [run('scheduler', 5), run('dispatch', 5)];
+  const issues = evaluateHealth({ now: NOW, jobs, deliveries: [] });
+  assert.equal(issues.some((x) => x.key.startsWith('job_stale:')), false);
+});
+
+test('พ้น startup grace period แล้ว job ที่ยังไม่เคยสำเร็จต้องแจ้งเตือน', () => {
+  const jobs = [run('scheduler', STARTUP_GRACE_HOURS * 60 + 5), run('dispatch', STARTUP_GRACE_HOURS * 60 + 5)];
+  const issues = evaluateHealth({ now: NOW, jobs, deliveries: [] });
+  assert.ok(issues.some((x) => /weather/.test(x.message) && x.key.startsWith('job_stale:')));
 });
 
 test('job ค้างสถานะ running เกิน 30 นาที', () => {

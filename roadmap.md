@@ -18,7 +18,7 @@
 - [x] Supabase connection ผ่าน
 - [x] Weather workflow บันทึก `weather_observations` สำเร็จ
 - [x] Healthcheck workflow ผ่าน (dry-run)
-- [ ] `scheduler` และ `dispatch` ยังไม่มี successful run
+- [x] `scheduler` และ `dispatch` มี successful run จาก tick รอบ `36866884343`
 - [ ] ยังไม่ได้ทดสอบส่ง LINE จริง
 
 ---
@@ -29,14 +29,14 @@
 
 ### งาน 1.1 รัน `tick` ครั้งแรก
 
-- [ ] รัน workflow `tick` ด้วยมือ (`gh workflow run`)
-- [ ] ตรวจ `job_runs` ว่ามี `scheduler` และ `dispatch` ที่ `status = 'ok'`
+- [x] รัน workflow `tick` ด้วยมือ (`gh workflow run`) — run `36866884343`
+- [x] ตรวจ `job_runs` ว่ามี `scheduler` และ `dispatch` ที่ `status = 'ok'`
 - **ผ่านเมื่อ:** ทั้งสอง job มีแถวสำเร็จ และไม่มี error ในล็อก
 
 ### งาน 1.2 Healthcheck รอบสอง
 
-- [ ] รัน healthcheck ซ้ำ
-- [ ] ปรับให้มี grace period หลังระบบเริ่มใหม่ เพื่อไม่แจ้งเตือนเท็จ
+- [ ] รัน healthcheck ซ้ำหลัง deploy grace period
+- [x] ปรับให้มี startup grace period 2 ชั่วโมงหลังเริ่มมี job run จริง เพื่อไม่แจ้งเตือนเท็จ
 - **ผ่านเมื่อ:** ไม่มีรายการ "หยุดทำงาน" เหลืออยู่
 
 ### งาน 1.3 ทดสอบ LINE จริง

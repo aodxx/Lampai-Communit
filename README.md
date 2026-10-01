@@ -27,8 +27,22 @@ node --env-file=.env src/cli.ts job healthcheck --dry-run  # ตรวจสุ�
 ```
 
 ### งานอัตโนมัติ (GitHub Actions)
-ตั้ง Secrets: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `LINE_CHANNEL_ACCESS_TOKEN` และ Variables: `COMMUNITY_ID`, `LINE_TARGET`
-แล้วรัน workflow `jobs` แบบ manual (ค่าเริ่มต้น dry-run) ก่อนปล่อยให้ทำงานตามเวลา
+ตั้ง Secrets: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `LINE_CHANNEL_ACCESS_TOKEN`, `ADMIN_LINE_TARGET` และ Variables: `COMMUNITY_ID`, `LINE_TARGET`, `HEALTH_EXPECTED_JOBS`
+แล้วรัน workflow `jobs` แบบ manual โดยเลือกงานและ `dry_run` ให้ตรงกับการทดสอบ ก่อนปล่อยให้ทำงานตามเวลา
+
+คำสั่งผ่าน GitHub CLI:
+
+```bash
+gh workflow run jobs.yml --ref main -f job=weather -f dry_run=false
+gh workflow run jobs.yml --ref main -f job=tick -f dry_run=false
+gh workflow run jobs.yml --ref main -f job=healthcheck -f dry_run=true
+gh run list --workflow jobs.yml
+gh run watch <run-id> --exit-status
+```
+
+ลำดับตรวจเฟส 1 คือ `weather → tick (scheduler + dispatch) → healthcheck` โดยตรวจผลย้อนหลังใน Supabase ตาราง `job_runs`, `deliveries` และ `delivery_attempts` ควบคู่กับ log ของ workflow
+
+Healthcheck มี startup grace period 2 ชั่วโมงหลังเริ่มมี job run จริง เพื่อไม่แจ้งเตือนว่า job ที่ยังไม่เคยสำเร็จหยุดทำงานทันทีหลังเปิดระบบ
 
 ## โครงสร้าง
 ```
