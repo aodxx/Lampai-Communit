@@ -11,7 +11,7 @@
 | เฟสปัจจุบัน | **Phase 2 (Reliability & Safety) — เริ่มดำเนินการหลังผู้ใช้ยืนยันให้ข้ามช่วงเฝ้าระวัง** |
 | ความพร้อมภาพรวม Phase 2 | ประมาณ 35% (retry/idempotency/backoff, RLS และ CI มีแล้ว; ยังเหลือ alert จริง, backup/restore, quota review และ pilot) |
 | สุขภาพโค้ด | `npm run typecheck` ✅ · `npm test` ✅ 61/61 (ตรวจเมื่อ 2026-10-01) |
-| สภาพแวดล้อมจริง | 🟡 Supabase `jwspesomdtycnzjakeiv` ACTIVE_HEALTHY; migration `delivery_backoff` applied; RLS เปิดครบ 14 ตาราง |
+| สภาพแวดล้อมจริง | 🟡 Supabase `jwspesomdtycnzjakeiv` ACTIVE_HEALTHY; migration `delivery_backoff` applied; RLS เปิดครบ 14 ตาราง; LINE Text ส่งจริงและผู้ใช้ยืนยันได้รับแล้ว |
 | Blocker หลัก | ต้องทดสอบ failure alert กับ `ADMIN_LINE_TARGET`, ตรวจ backup/restore และกำหนด pilot ก่อนปิดเฟส 2 |
 
 ---
