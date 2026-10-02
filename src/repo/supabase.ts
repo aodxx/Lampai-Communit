@@ -124,6 +124,16 @@ export class SupabaseRepo implements Repo {
     const r = await this.db.from('deliveries').select('*').eq('community_id', communityId).eq('status', 'queued').order('created_at', { ascending: true });
     return check(r, 'listDispatchable').map((x) => fromRow<Delivery>(x as Row));
   }
+  async claimDelivery(id: string, now: Date, leaseMs: number) {
+    const r = await this.db
+      .from('deliveries')
+      .update({ next_attempt_at: new Date(now.getTime() + leaseMs).toISOString() })
+      .eq('id', id)
+      .eq('status', 'queued')
+      .or(`next_attempt_at.is.null,next_attempt_at.lte.${now.toISOString()}`)
+      .select('id');
+    return check(r, 'claimDelivery').length > 0;
+  }
   async recordAttempt(deliveryId: string, attempt: { ok: boolean; httpStatus: number | null; error: string | null }, patch: Partial<Delivery>) {
     check(await this.db.from('delivery_attempts').insert({ delivery_id: deliveryId, ok: attempt.ok, http_status: attempt.httpStatus, error: attempt.error }), 'recordAttempt.insert');
     check(await this.db.from('deliveries').update(toRow(patch)).eq('id', deliveryId), 'recordAttempt.update');

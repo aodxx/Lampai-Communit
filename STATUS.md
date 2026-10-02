@@ -5,12 +5,12 @@
 
 | รายการ | ค่า |
 |---|---|
-| อัปเดตล่าสุด | 2026-10-01 (เริ่มเฟส 2: เพิ่ม delivery exponential backoff และตรวจ RLS) |
+| อัปเดตล่าสุด | 2026-10-03 (Priority 1: ส่ง CRITICAL ทันที + tick แบบ catch-up + endpoint ตั้งเวลาภายนอก) |
 | เวอร์ชันโค้ด | 0.1.0 |
 | เวอร์ชัน PRD | 0.3 (Decision Baseline) |
 | เฟสปัจจุบัน | **Phase 2 (Reliability & Safety) — เริ่มดำเนินการหลังผู้ใช้ยืนยันให้ข้ามช่วงเฝ้าระวัง** |
 | ความพร้อมภาพรวม Phase 2 | ประมาณ 35% (retry/idempotency/backoff, RLS และ CI มีแล้ว; ยังเหลือ alert จริง, backup/restore, quota review และ pilot) |
-| สุขภาพโค้ด | `npm run typecheck` ✅ · `npm test` ✅ 61/61 (ตรวจเมื่อ 2026-10-01) |
+| สุขภาพโค้ด | `npm run typecheck` ✅ · `npm test` ✅ 76/76 (ตรวจเมื่อ 2026-10-03) |
 | สภาพแวดล้อมจริง | 🟡 Supabase `jwspesomdtycnzjakeiv` ACTIVE_HEALTHY; migration `delivery_backoff` applied; RLS เปิดครบ 14 ตาราง; LINE Text ส่งจริงและผู้ใช้ยืนยันได้รับแล้ว |
 | Blocker หลัก | ต้องทดสอบ failure alert กับ `ADMIN_LINE_TARGET`, ตรวจ backup/restore และกำหนด pilot ก่อนปิดเฟส 2 |
 
@@ -71,6 +71,15 @@
 - `docs/03-data-model.md` และ `docs/06–08` ยังไม่ถูกเขียน; `docs/04-architecture.md` และ `docs/05-api-contract.md` ถูกเพิ่มแล้วสำหรับ PWA vertical slice
 - Secret scanning และ push protection ของ GitHub เปิดอยู่แล้ว; Dependabot alerts ยังปิด และ `main` ยังไม่ถูกป้องกัน
 
+## 5.0 บันทึก Priority 1 (2026-10-03)
+
+- **ปัญหาที่พบ:** GitHub cron `*/5` รันจริง 45 ครั้งใน 3 วัน (ห่างเฉลี่ย ~85 นาที สูงสุด ~5 ชม.) และ Admin PWA/API เดิมแค่ "จัดคิว" ประกาศ CRITICAL ไม่ได้ส่งทันที (มีแต่ CLI ที่ส่งหลัง publish) → ขัด NFR-004
+- เพิ่ม `src/services/publishFlow.ts`: publish/resolve/แก้เรื่อง CRITICAL แล้วส่ง LINE ทันทีก่อนตอบ (timeout 8 วิ, ล้มแล้วไม่ทำให้ publish ล้ม) และ Admin PWA แสดงผลการส่ง
+- เพิ่ม `claimDelivery` (compare-and-set บน `next_attempt_at`, ไม่ต้อง migration) กันส่งซ้ำเมื่อส่งทันที/tick/Actions ทำงานพร้อมกัน
+- เพิ่ม `src/services/tick.ts` + `job tick` + `POST /api/cron/tick`: scheduler, ดึงอากาศที่เก่า, Briefing เช้าแบบ catch-up (06:30–11:59), ส่งคิว — แต่ละขั้นแยก error
+- เทสต์ใหม่ 15 ข้อ (`immediate.test.ts`); ทดลอง mutation (ปิด claim / ปิด flush) แล้วเทสต์จับได้
+- **ยังไม่ได้ตรวจกับของจริง:** ต้องตั้ง `CRON_SECRET`, `LINE_CHANNEL_ACCESS_TOKEN`, `LINE_TARGET` บน Vercel และตัวเรียก tick ภายนอก แล้ววัดเวลา publish→LINE (ดู `docs/09-external-scheduler.md`)
+
 ## 5.1 บันทึกการดำเนินการ staging (2026-10-01)
 
 - อ่านคู่มือแนบและเอกสาร/โค้ดในรีโปครบก่อนลงมือ
@@ -111,6 +120,7 @@
 
 ## 8. งานถัดไปที่แนะนำ (เรียงลำดับ)
 
+0. **ตั้งค่า Priority 1 บน Vercel/ตัวตั้งเวลาภายนอก** แล้ววัดเวลาส่งทันทีจริง (`docs/09-external-scheduler.md`)
 1. ตั้ง Secret `ADMIN_LINE_TARGET` แล้วทดสอบ healthcheck บน staging
 2. ตั้ง Supabase (staging) + LINE OA/กลุ่มทดสอบ + Secrets → รัน workflow `jobs` แบบ dry-run
 3. เชื่อม Admin PWA กับ Supabase Auth จริง และทดสอบสิทธิ์แต่ละ role

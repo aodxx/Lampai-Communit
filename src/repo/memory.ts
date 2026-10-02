@@ -83,6 +83,13 @@ export class MemoryRepo implements Repo {
   async listDispatchable(communityId: string) {
     return this.deliveries.filter((d) => d.communityId === communityId && d.status === 'queued').map((d) => structuredClone(d));
   }
+  async claimDelivery(id: string, now: Date, leaseMs: number) {
+    const d = this.deliveries.find((x) => x.id === id);
+    if (!d || d.status !== 'queued') return false;
+    if (d.nextAttemptAt && Date.parse(d.nextAttemptAt) > now.getTime()) return false;
+    d.nextAttemptAt = new Date(now.getTime() + leaseMs).toISOString();
+    return true;
+  }
   async recordAttempt(deliveryId: string, attempt: { ok: boolean; httpStatus: number | null; error: string | null }, patch: Partial<Delivery>) {
     this.attempts.push({ deliveryId, ...attempt });
     const d = this.deliveries.find((x) => x.id === deliveryId);

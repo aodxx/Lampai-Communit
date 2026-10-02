@@ -1,7 +1,7 @@
 import { deliversImmediately, canSendNow } from '../engine/priority.ts';
 import { formatAnnouncementMessage } from '../engine/message.ts';
 import { canSendUnderQuota, quotaLevel, type QuotaLevel } from '../engine/quota.ts';
-import type { Announcement, AnnouncementUpdate } from '../engine/types.ts';
+import type { Announcement, AnnouncementUpdate, Priority } from '../engine/types.ts';
 import type { QuotaProvider } from '../adapters/lineQuota.ts';
 import type { Delivery, Repo } from '../repo/types.ts';
 import type { Ctx } from './announcements.ts';
@@ -12,6 +12,8 @@ export interface Sender {
 
 export const MAX_ATTEMPTS = 3;
 export const RETRY_BASE_MS = 60_000;
+/** ระยะจองรายการระหว่างส่ง (> timeout ของ LINE 15 วิ) — ถ้า process ตายกลางทาง รอบถัดไปส่งซ้ำด้วย retry key เดิม LINE จะกันซ้ำให้ */
+export const CLAIM_LEASE_MS = 90_000;
 
 /** เรื่องด่วนวิกฤตส่งทันที (ไม่รอ Briefing) — ที่เหลือรอรวมใน Briefing */
 export async function queueImmediateIfNeeded(ctx: Ctx, a: Announcement, u: AnnouncementUpdate): Promise<boolean> {
@@ -37,9 +39,9 @@ export interface DispatchStats {
 }
 
 /** ส่งคิวที่ค้างอยู่: เคารพ quiet hours, ปฏิเสธข้อมูลที่ไม่ใช่ public, retry จำกัดจำนวน, บันทึกทุกความพยายาม */
-export async function dispatch(repo: Repo, sender: Sender, communityId: string, now: Date, opts: { quota?: QuotaProvider } = {}): Promise<DispatchStats> {
+export async function dispatch(repo: Repo, sender: Sender, communityId: string, now: Date, opts: { quota?: QuotaProvider; only?: readonly Priority[] } = {}): Promise<DispatchStats> {
   const stats: DispatchStats = { sent: 0, failed: 0, heldQuietHours: 0, heldLowQuota: 0, refused: 0, quotaLevel: 'unchecked' };
-  const queue = await repo.listDispatchable(communityId);
+  const queue = (await repo.listDispatchable(communityId)).filter((d) => !opts.only || opts.only.includes(d.priority));
   // ตรวจโควต้าครั้งเดียวต่อรอบ (เฉพาะเมื่อมีของต้องส่ง); ตรวจไม่ได้ = fail-open ไม่ให้ข้อความสำคัญค้างเพราะ API โควต้าล่ม
   let level: QuotaLevel = 'ok';
   if (opts.quota && queue.length > 0) {
@@ -65,6 +67,7 @@ export async function dispatch(repo: Repo, sender: Sender, communityId: string, 
       stats.heldLowQuota++;
       continue; // โควต้าใกล้หมด: คงอยู่ในคิว ส่งเฉพาะ CRITICAL (R3)
     }
+    if (!(await repo.claimDelivery(d.id, now, CLAIM_LEASE_MS))) continue; // มีอีก process กำลังส่งรายการนี้อยู่
     const r = await sender.send(d.payload, d.id).catch((e: unknown) => ({ ok: false, status: null, error: e instanceof Error ? e.message : String(e) }));
     const attemptCount = d.attemptCount + 1;
     if (r.ok) {

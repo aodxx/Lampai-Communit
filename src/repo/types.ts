@@ -98,6 +98,11 @@ export interface Repo {
   /** รายการ delivery สำหรับหน้าผู้ดูแล (เรียงใหม่ไปเก่าและจำกัดจำนวน) */
   listDeliveries(communityId: string, limit?: number): Promise<Delivery[]>;
   listDispatchable(communityId: string): Promise<Delivery[]>;
+  /**
+   * จองรายการส่งแบบอะตอมมิก (compare-and-set บน next_attempt_at): คืน true เฉพาะผู้เรียกที่ได้สิทธิ์ส่ง
+   * กัน tick กับการส่งทันทีหลัง publish ส่งรายการเดียวกันพร้อมกัน; lease หมดอายุเองถ้า process ตายกลางทาง
+   */
+  claimDelivery(id: string, now: Date, leaseMs: number): Promise<boolean>;
   recordAttempt(deliveryId: string, attempt: { ok: boolean; httpStatus: number | null; error: string | null }, patch: Partial<Pick<Delivery, 'status' | 'attemptCount' | 'lastError' | 'nextAttemptAt' | 'sentAt'>>): Promise<void>;
 
   audit(e: AuditEntry): Promise<void>;

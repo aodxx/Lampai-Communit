@@ -3,7 +3,7 @@ name: jobs
 on:
   schedule:
     - cron: '0 */3 * * *'    # weather: ทุก 3 ชม.
-    - cron: '*/5 * * * *'    # tick: fallback scheduler + dispatch; CRITICAL ถูกส่งทันทีตอน publish
+    - cron: '*/5 * * * *'    # tick: สำรอง — งานตามเวลาครบชุด (catch-up) ; CRITICAL ส่งทันทีตอน publish ไม่พึ่ง cron นี้
     - cron: '30 23 * * *'    # briefing เช้า 06:30 เวลาไทย
     - cron: '20 * * * *'     # healthcheck: ทุกชั่วโมง (NFR-003)
   workflow_dispatch:
@@ -66,9 +66,7 @@ jobs:
         run: node src/cli.ts job weather
       - name: tick
         if: steps.pick.outputs.job == 'tick' && steps.preflight.outputs.skip != 'true'
-        run: |
-          node src/cli.ts job scheduler
-          node src/cli.ts job dispatch ${{ steps.pick.outputs.dry }}
+        run: node src/cli.ts job tick ${{ steps.pick.outputs.dry }}
       - name: briefing
         if: steps.pick.outputs.job == 'briefing' && steps.preflight.outputs.skip != 'true'
         run: |

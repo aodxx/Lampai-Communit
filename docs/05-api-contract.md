@@ -58,7 +58,22 @@ Response สำเร็จ `{ "demo": false, "accessToken": "...", "refreshToke
 
 ### `POST /api/announcements/:id/publish`
 
-ใช้ service `publish()` และสิทธิ์ `admin` หรือ `village_head`; CRITICAL จะถูกจัดคิว immediate delivery ตามกฎเดิม
+ใช้ `publishAndFlush()` และสิทธิ์ `admin` หรือ `village_head`
+
+Response: `{ announcement, delivery }`
+- `delivery = null` → เรื่องไม่ใช่ CRITICAL จะรวมใน Briefing รอบถัดไป
+- CRITICAL → ส่ง LINE ทันทีก่อนตอบกลับ (timeout 8 วินาที): `{ configured, sent, failed, timedOut, error }`
+  - `configured:false` = ยังไม่ได้ตั้ง `LINE_CHANNEL_ACCESS_TOKEN`/`LINE_TARGET` บนเซิร์ฟเวอร์ → ข้อความรอในคิว
+  - `sent:0` + `timedOut`/`error` → ยังอยู่ในคิว ระบบ retry เอง (backoff 1/2 นาที) และ tick เป็นตัวสำรอง; publish ไม่ล้ม
+
+`resolve` และ `POST /api/announcements` (กรณีแก้เรื่อง CRITICAL ที่เผยแพร่แล้ว) คืน `delivery` ในรูปเดียวกัน
+
+### `POST|GET /api/cron/tick`
+สำหรับตัวตั้งเวลาภายนอกเท่านั้น (ไม่ใช้ session ผู้ใช้) — header `Authorization: Bearer <CRON_SECRET>`
+- 401 secret ผิด · 503 ไม่ได้ตั้ง `CRON_SECRET` หรือโหมดสาธิต
+- ทำ: scheduler → ดึงอากาศถ้าเก่ากว่า 2 ชม. → Briefing เช้าถ้าถึงเวลา (06:30–11:59 ไทย) และยังไม่เคยทำวันนี้ → ส่งคิว
+- 200 `{scheduler, weather, briefing, dispatch, errors:[]}` · 500 ถ้าขั้นใดขั้นหนึ่งล้ม (ขั้นอื่นยังทำงานต่อ)
+- รายละเอียดการตั้งค่า: `docs/09-external-scheduler.md`
 
 ### `POST /api/announcements/:id/resolve`
 

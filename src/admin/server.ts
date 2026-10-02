@@ -3,7 +3,12 @@ import { existsSync, readFileSync } from 'node:fs';
 import { extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import { ingest, publish, resolve, type Ctx } from '../services/announcements.ts';
+import type { Ctx } from '../services/announcements.ts';
+import { ingestAndFlush, publishAndFlush, resolveAndFlush } from '../services/publishFlow.ts';
+import { checkCronAuth, runTick } from '../services/tick.ts';
+import { lineSender } from '../adapters/line.ts';
+import { lineQuota } from '../adapters/lineQuota.ts';
+import type { Sender } from '../services/delivery.ts';
 import type { Actor, AnnouncementType, DataLevel, IncomingItem, Priority, Role } from '../engine/types.ts';
 import type { Repo } from '../repo/types.ts';
 import { MemoryRepo } from '../repo/memory.ts';
@@ -18,6 +23,13 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY ?? '';
 const configured = Boolean(SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY && COMMUNITY_ID);
 const demoMode = process.env.ADMIN_DEMO === 'true' || (!configured && process.env.NODE_ENV !== 'production');
+const LINE_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN ?? '';
+const LINE_TARGET = process.env.LINE_TARGET ?? '';
+/** ผู้ส่ง LINE สำหรับ "ส่งทันที" — ไม่ตั้งค่า (หรือโหมดสาธิต) = ไม่ส่ง ข้อความรอในคิว */
+function liveSender(): Sender | null {
+  if (demoMode || !LINE_TOKEN || !LINE_TARGET) return null;
+  return lineSender(LINE_TOKEN, LINE_TARGET);
+}
 const roleOrder: Role[] = ['admin', 'village_head', 'assistant', 'editor', 'health_volunteer', 'viewer'];
 const allowedCreate: Role[] = ['admin', 'village_head', 'assistant', 'editor'];
 const allowedEdit: Role[] = ['admin', 'village_head', 'assistant', 'editor'];
@@ -172,6 +184,16 @@ async function api(req: IncomingMessage, res: ServerResponse, path: string): Pro
     return json(res, 200, { demo: false, accessToken: result.data.session.access_token, refreshToken: result.data.session.refresh_token });
   }
 
+  if (path === '/api/cron/tick' && (req.method === 'POST' || req.method === 'GET')) {
+    // ตัวตั้งเวลาภายนอก (cron-job.org / Supabase pg_cron) — ใช้ secret แยก ไม่ใช่ session ผู้ใช้
+    const auth = checkCronAuth(req.headers.authorization, process.env.CRON_SECRET);
+    if (auth === 'disabled') return fail(res, 503, 'ยังไม่ได้ตั้ง CRON_SECRET (ยาวอย่างน้อย 16 ตัวอักษร)');
+    if (auth !== 'ok') return fail(res, 401, 'ไม่ได้รับอนุญาต');
+    if (demoMode) return fail(res, 503, 'โหมดสาธิตไม่รองรับ tick');
+    const result = await runTick(nowCtx(repo), { sender: liveSender(), quota: LINE_TOKEN ? lineQuota(LINE_TOKEN) : undefined });
+    return json(res, result.errors.length ? 500 : 200, result);
+  }
+
   let actor: Actor;
   try { actor = await actorFrom(req); } catch (error) { return fail(res, 401, errorMessage(error)); }
   try {
@@ -189,7 +211,7 @@ async function api(req: IncomingMessage, res: ServerResponse, path: string): Pro
     }
     if (path === '/api/announcements' && req.method === 'POST') {
       requireRole(actor, allowedCreate);
-      const result = await ingest(nowCtx(repo), announcementInput(await readJson(req)), actor);
+      const result = await ingestAndFlush(nowCtx(repo), announcementInput(await readJson(req)), actor, liveSender());
       return json(res, 201, result);
     }
     const match = path.match(/^\/api\/announcements\/([^/]+)(?:\/(publish|resolve))?$/);
@@ -198,14 +220,14 @@ async function api(req: IncomingMessage, res: ServerResponse, path: string): Pro
       const action = match[2];
       if (action === 'publish' && req.method === 'POST') {
         requireRole(actor, allowedPublish);
-        return json(res, 200, { announcement: await publish(nowCtx(repo), id, actor) });
+        return json(res, 200, await publishAndFlush(nowCtx(repo), id, actor, liveSender()));
       }
       if (action === 'resolve' && req.method === 'POST') {
         requireRole(actor, allowedResolve);
         const body = await readJson(req);
         const summary = text(body.summary);
         if (!summary) return fail(res, 400, 'กรุณาระบุข้อความสรุปการปิดเรื่อง');
-        return json(res, 200, { announcement: await resolve(nowCtx(repo), id, summary, actor) });
+        return json(res, 200, await resolveAndFlush(nowCtx(repo), id, summary, actor, liveSender()));
       }
       if (!action && req.method === 'PATCH') {
         requireRole(actor, allowedEdit);

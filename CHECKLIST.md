@@ -86,8 +86,8 @@
 - [x] 💻 เพิ่ม job `healthcheck` (ทุกชั่วโมง): ตรวจ job ที่ไม่รัน/รันล้มเหลว/ค้าง และ deliveries ค้างหรือส่งล้มเหลว แล้วแจ้งผู้ดูแล (NFR-003, R4) — โค้ด+เทสต์เสร็จ (`src/engine/health.ts`, `src/services/healthcheck.ts`); ⏳ ยังไม่ทดสอบกับ Supabase/LINE จริง
 - [x] 💻 กำหนดช่องทางแจ้งผู้ดูแลเมื่อระบบมีปัญหา — ใช้ LINE push ไป `ADMIN_LINE_TARGET` (ห้ามเป็น broadcast); ถ้าไม่ตั้งค่าแล้วพบปัญหา job จะล้มให้ workflow แจ้งเตือน (ไม่เงียบ)
 - [ ] ⚙️ ตั้ง GitHub Secret `ADMIN_LINE_TARGET` (userId/groupId ของผู้ดูแล) และ Variable `HEALTH_EXPECTED_JOBS` (ถ้าต้องการลดรายการบน staging) แล้วรัน workflow `jobs` → healthcheck แบบ dry-run
-- [ ] 💻 ตัดสินใจเรื่องความถี่ scheduler (ตอนนี้ 15 นาที vs PRD 5 นาที) และปรับ `jobs.yml`
-- [ ] 💻 กลไกงาน CRITICAL ตามคำตอบ #8 (เช่น trigger `workflow_dispatch` ทันทีหลัง publish)
+- [x] 💻 ความถี่ scheduler: ตรวจพบว่า GitHub cron จริงห่างเฉลี่ย ~85 นาที (3 วัน 45 รัน) → เพิ่ม `POST /api/cron/tick` สำหรับตัวตั้งเวลาภายนอก + tick แบบ catch-up (`docs/09-external-scheduler.md`) — ⏳ เจ้าของต้องตั้ง `CRON_SECRET` และตัวเรียก (cron-job.org/pg_cron)
+- [x] 💻 กลไกงาน CRITICAL ตามคำตอบ #8: ส่ง LINE ทันทีในคำขอ publish/resolve/แก้เรื่อง (`publishAndFlush`) + จองรายการแบบอะตอมมิกกันส่งซ้ำ — ⏳ ต้องตั้ง `LINE_CHANNEL_ACCESS_TOKEN`/`LINE_TARGET` บน Vercel และวัดเวลาจริง ≤ 5 นาที (NFR-004) บน staging
 - [ ] 💻 ตรวจ/เพิ่ม structured log ต่อ job: new/updated/skipped/failed (NFR-006)
 - [x] 💻 ควบคุมโควต้า LINE + แจ้งเตือนก่อนเต็ม (NFR-005, R3) — โค้ด+เทสต์เสร็จ: แจ้งผู้ดูแลที่ 80%/95%/หมด, โควต้า ≥95% ส่งเฉพาะ CRITICAL (`src/engine/quota.ts`, `src/adapters/lineQuota.ts`); ⏳ ยังไม่ทดสอบกับ LINE จริง และยังไม่ได้ตั้งเพดานตามแผนที่ใช้จริง (PRD ข้อ 17 #3)
 - [ ] 💻 (SHOULD) ตรวจการเปลี่ยนแปลงสำคัญของอากาศเทียบรอบก่อน (FR-803)

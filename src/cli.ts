@@ -5,9 +5,11 @@ import type { Actor, IncomingItem } from './engine/types.ts';
 import { weatherFetchJob } from './jobs/weatherFetch.ts';
 import { withJobRun } from './jobs/run.ts';
 import { SupabaseRepo } from './repo/supabase.ts';
-import { ingest, publish, resolve, runScheduler, type Ctx } from './services/announcements.ts';
+import { runScheduler, type Ctx } from './services/announcements.ts';
 import { runBriefing } from './services/briefing.ts';
 import { dispatch } from './services/delivery.ts';
+import { ingestAndFlush, publishAndFlush, resolveAndFlush } from './services/publishFlow.ts';
+import { runTick } from './services/tick.ts';
 import { DEFAULT_EXPECTED_JOBS } from './engine/health.ts';
 import { runHealthcheck } from './services/healthcheck.ts';
 
@@ -15,6 +17,7 @@ const USAGE = `ใช้งาน: node src/cli.ts <คำสั่ง>
   job weather                     ดึงอากาศ (Open-Meteo) เก็บลงฐานข้อมูล
   job scheduler                   เปลี่ยนสถานะตามเวลา + สร้างการเตือน
   job briefing [--slot morning] [--dry-run]   ประกอบ/ตัดสินส่ง Briefing
+  job tick [--dry-run]            งานตามเวลาครบชุด (scheduler + อากาศที่เก่า + Briefing ที่ถึงเวลา + ส่งคิว) ทนต่อ cron ที่มาช้า
   job dispatch [--dry-run]        ส่งคิวข้อความผ่าน LINE
   job healthcheck [--dry-run]     ตรวจ job/คิวส่ง แล้วแจ้งผู้ดูแล (ADMIN_LINE_TARGET) เมื่อพบปัญหาใหม่
   announce <file.json> [--publish]   สร้างประกาศจากไฟล์ (เป็น draft; --publish เพื่อเผยแพร่)
@@ -41,6 +44,12 @@ for (let i = 0; i < args.length; i++) {
   else if (!a.startsWith('--')) positional.push(a);
 }
 
+function cliSender() {
+  const token = process.env.LINE_CHANNEL_ACCESS_TOKEN;
+  const target = process.env.LINE_TARGET;
+  return token && target ? lineSender(token, target) : null;
+}
+
 async function main() {
   const [cmd, sub] = positional;
   if (!cmd || cmd === 'help') return console.log(USAGE);
@@ -55,6 +64,13 @@ async function main() {
       switch (sub) {
         case 'weather':
           return await weatherFetchJob(ctx);
+        case 'tick': {
+          const token = process.env.LINE_CHANNEL_ACCESS_TOKEN;
+          const target = process.env.LINE_TARGET;
+          const r = await runTick(ctx, { sender: token && target ? lineSender(token, target) : null, quota: token ? lineQuota(token) : undefined, dryRun: flag('dry-run') });
+          if (r.errors.length) throw new Error(r.errors.join('\n'));
+          return { ...r };
+        }
         case 'scheduler':
           return { ...(await runScheduler(ctx)) };
         case 'briefing': {
@@ -92,30 +108,21 @@ async function main() {
     const item = JSON.parse(readFileSync(file, 'utf8')) as Partial<IncomingItem>;
     const full = { sourceId: process.env.MANUAL_SOURCE_ID ?? '', ...item } as IncomingItem;
     if (!full.sourceId) throw new Error('ต้องมี sourceId ในไฟล์ หรือตั้ง MANUAL_SOURCE_ID');
-    const out = await ingest(ctx, full, admin);
+    const out = await ingestAndFlush(ctx, full, admin, cliSender());
     console.log(JSON.stringify({ result: out.result, id: 'announcement' in out ? out.announcement.id : out.reviewId }));
     if (flag('publish') && 'announcement' in out && out.result === 'created') {
-      const published = await publish(ctx, out.announcement.id, admin);
-      if (published.priority === 'critical') {
-        await dispatch(repo, lineSender(env('LINE_CHANNEL_ACCESS_TOKEN'), env('LINE_TARGET')), communityId, ctx.now, { quota: lineQuota(env('LINE_CHANNEL_ACCESS_TOKEN')) });
-      }
-      console.log('เผยแพร่แล้ว');
+      const r = await publishAndFlush(ctx, out.announcement.id, admin, cliSender());
+      console.log('เผยแพร่แล้ว', JSON.stringify(r.delivery));
     }
     return;
   }
   if (cmd === 'publish' && sub) {
-    const published = await publish(ctx, sub, admin);
-    if (published.priority === 'critical') {
-      await dispatch(repo, lineSender(env('LINE_CHANNEL_ACCESS_TOKEN'), env('LINE_TARGET')), communityId, ctx.now, { quota: lineQuota(env('LINE_CHANNEL_ACCESS_TOKEN')) });
-    }
-    return void console.log('เผยแพร่แล้ว');
+    const r = await publishAndFlush(ctx, sub, admin, cliSender());
+    return void console.log('เผยแพร่แล้ว', JSON.stringify(r.delivery));
   }
   if (cmd === 'resolve' && sub) {
-    const resolved = await resolve(ctx, sub, positional[2] ?? '', admin);
-    if (resolved.priority === 'critical') {
-      await dispatch(repo, lineSender(env('LINE_CHANNEL_ACCESS_TOKEN'), env('LINE_TARGET')), communityId, ctx.now, { quota: lineQuota(env('LINE_CHANNEL_ACCESS_TOKEN')) });
-    }
-    return void console.log('ปิดเรื่องแล้ว');
+    const r = await resolveAndFlush(ctx, sub, positional[2] ?? '', admin, cliSender());
+    return void console.log('ปิดเรื่องแล้ว', JSON.stringify(r.delivery));
   }
 
   console.log(USAGE);
